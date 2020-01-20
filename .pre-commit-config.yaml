@@ -1,0 +1,14 @@
+repos:
+  - repo: local
+    hooks:
+      - id: mypy
+        name: Mypy
+        entry: mypy
+        language: python
+        'types': [python]
+
+      - id: pylint
+        name: Pylint
+        entry: pylint
+        language: python
+        'types': [python]

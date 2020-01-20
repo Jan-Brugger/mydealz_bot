@@ -1,0 +1,7 @@
+[general]
+env = dev
+log_level = DEBUG
+log_file = logs/bot.log
+
+[telegram]
+token = 1234567890:asdfasdfasdfasdfasdfasdfasdfasdfas

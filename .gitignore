@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# dev IDE
+.idea
+
+# virtual environment dependencies
+venv
+
+# config
+config/config.ini
+
+# testing
+.mypy_cache
+
+# logs
+logs
