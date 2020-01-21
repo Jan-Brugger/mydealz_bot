@@ -8,7 +8,7 @@ from src.config_loader import Config
 class Core:
     @classmethod
     def init(cls) -> None:
-        locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+        # locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8') # TODO Fix locale for docker
         Config.init(['config/config.ini'])
         cls.__init_logging()
 
