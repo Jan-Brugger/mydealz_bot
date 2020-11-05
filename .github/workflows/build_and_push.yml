@@ -28,4 +28,6 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64, linux/arm64, linux/arm/v7
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/mydealz_bot:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/mydealz_bot:latest
+            ${{ secrets.DOCKER_USERNAME }}/mydealz_bot:${{ github.run_number }}
