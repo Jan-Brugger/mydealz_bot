@@ -1,3 +1,4 @@
+import logging
 import time
 from threading import Thread
 
@@ -12,5 +13,9 @@ if __name__ == '__main__':
     bot.start()
 
     while True:
-        Feed().parse()
+        try:
+            Feed().parse()
+        except Exception as ex:  # pylint: disable=broad-except
+            logging.exception(ex)
+
         time.sleep(60)

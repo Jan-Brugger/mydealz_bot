@@ -48,10 +48,6 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
     return InlineKeyboardMarkup(keyboard)
 
 
-def notification_deleted() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[InlineKeyboardButton('🏠 Home', callback_data=HOME)]])
-
-
 def deal_kb(notification: NotificationModel) -> InlineKeyboardMarkup:
     id_suffix = VARIABLE_PATTERN.format(variable=NOTIFICATION_ID, value=notification.id)
     return InlineKeyboardMarkup([[

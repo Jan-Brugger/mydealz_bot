@@ -20,7 +20,7 @@ class Methods:
 
     @classmethod
     def error(cls, update: Update, context: CallbackContext) -> None:
-        logger.warning('Update "%s" caused error "%s"', update, context)
+        logger.error('Error "%s" caused by update %s', context, update)
 
     @classmethod
     def start(cls, update: Update, context: CallbackContext) -> int:
@@ -40,10 +40,12 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
-    def home(cls, update: Update, context: CallbackContext) -> int:
+    def home(cls, update: Update, context: CallbackContext, add_message: str = '') -> int:
         logging.debug('%s %s', update, context)
         notifications = SQLiteNotifications().get_by_user_id(cls.get_user_id(update))
-        cls.overwrite_message(update, context, messages.start(), keyboards.start(notifications))
+
+        message = '{}\n\n{}'.format(add_message, messages.start()) if add_message else messages.start()
+        cls.overwrite_message(update, context, message, keyboards.start(notifications))
 
         # cleanup
         context.user_data.clear()
@@ -65,7 +67,7 @@ class Methods:
         notification.id = SQLiteNotifications().upsert_model(notification)
         context.user_data[NOTIFICATION] = notification
 
-        logging.debug('user %s added notification %s (%s)', notification.user_id, notification.id, notification.query)
+        logging.info('user %s added notification %s (%s)', notification.user_id, notification.id, notification.query)
         cls.send_message(update, context, messages.notification_added(notification),
                          keyboards.notification_commands(notification))
 
@@ -163,8 +165,8 @@ class Methods:
         notification = cls.get_notification(update, context)
         SQLiteNotifications().delete_by_id(notification.id)
 
-        logging.debug('user %s deleted notification %s (%s)', notification.user_id, notification.id, notification.query)
-        cls.send_message(update, context, messages.notification_deleted(notification), keyboards.notification_deleted())
+        logging.info('user %s deleted notification %s (%s)', notification.user_id, notification.id, notification.query)
+        cls.home(update, context, messages.notification_deleted(notification))
 
     @classmethod
     def get_user_id(cls, update: Update) -> int:
