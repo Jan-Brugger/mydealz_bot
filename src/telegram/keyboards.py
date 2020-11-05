@@ -35,12 +35,13 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
         hot_toggle = InlineKeyboardButton('🌶️ Nur heiße Deals senden', callback_data=ONLY_HOT_TOGGLE + id_suffix)
 
     keyboard.append([
-        hot_toggle
+        hot_toggle,
+        InlineKeyboardButton('❌ Löschen', callback_data=DELETE_NOTIFICATION + id_suffix),
     ])
 
     # row 3
     keyboard.append([
-        InlineKeyboardButton('❌ Löschen', callback_data=DELETE_NOTIFICATION + id_suffix),
+        InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=ADD_NOTIFICATION),
         InlineKeyboardButton('🏠 Home', callback_data=HOME),
     ])
 
