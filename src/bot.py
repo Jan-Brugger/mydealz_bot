@@ -79,6 +79,7 @@ class Bot:
         )
 
         dp.add_handler(CommandHandler('start', Methods.start))
+        dp.add_handler(CommandHandler('help', Methods.help))
         dp.add_handler(CallbackQueryHandler(Methods.home, pattern=r'^{}$'.format(HOME)))
         dp.add_handler(CallbackQueryHandler(Methods.show_notification, pattern=r'^{}.*$'.format(EDIT_NOTIFICATION)))
         dp.add_handler(CallbackQueryHandler(Methods.toggle_only_hot, pattern=r'^{}.*$'.format(ONLY_HOT_TOGGLE)))

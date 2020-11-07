@@ -1,8 +1,20 @@
-from src.models import NotificationModel, DealModel
+from src.models import DealModel, NotificationModel
 
 
 def start() -> str:
     return 'Folgende Benachrichtigungen sind aktiv:'
+
+
+def help_msg() -> str:
+    return 'Um den Bot zu starten, nutze das Kommando /start' \
+           '\n\n<b>Suchbegriffe:</b>' \
+           '\ncase-insensitive und führende/anhängende Leerzeichen werden entfernt.' \
+           '\n-> "nutella&rewe,nutella&lidl" \nliefert die selben Ergebnisse wie \n"Nutella & REWE, Nutella & Lidl"' \
+           '\n\n<b>Maximaler Preis:</b>' \
+           '\nNur Benachrichtigungen für Deals mit niedrigerer oder ohne Preisangabe' \
+           '\n\n<b>Reichweite:</b> ' \
+           '\nAlle Deals -> Benachrichtigungen für alle Deals' \
+           '\nNur heiße Deals -> Benachrichtigungen für Deals > 100°'
 
 
 def query_instructions() -> str:

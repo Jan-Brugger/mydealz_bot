@@ -40,6 +40,12 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
+    def help(cls, update: Update, context: CallbackContext) -> int:
+        cls.send_message(update, context, messages.help_msg(), parse_mode='HTML')
+
+        return END_CONVERSATION
+
+    @classmethod
     def home(cls, update: Update, context: CallbackContext, add_message: str = '') -> int:
         logging.debug('%s %s', update, context)
         notifications = SQLiteNotifications().get_by_user_id(cls.get_user_id(update))
@@ -178,24 +184,27 @@ class Methods:
 
     @classmethod
     def overwrite_message(cls, update: Update, context: CallbackContext,
-                          text: str, reply_markup: Optional[InlineKeyboardMarkup] = None) -> None:
+                          text: str,
+                          reply_markup: Optional[InlineKeyboardMarkup] = None,
+                          parse_mode: Optional[str] = None) -> None:
         try:
             update.callback_query.edit_message_text(text)
             if reply_markup:
                 update.callback_query.edit_message_reply_markup(reply_markup)
         except AttributeError:
             logging.debug('replace failed, send new message instead. %s %s', update, context)
-            cls.send_message(update, context, text, reply_markup)
+            cls.send_message(update, context, text, reply_markup, parse_mode)
 
     @classmethod
     def send_message(cls, update: Update, context: CallbackContext,
-                     text: str, reply_markup: Optional[InlineKeyboardMarkup] = None) -> None:
+                     text: str,
+                     reply_markup: Optional[InlineKeyboardMarkup] = None,
+                     parse_mode: Optional[str] = None) -> None:
         # remove old keyboard
         try:
             context.bot.edit_message_reply_markup(
                 cls.get_user_id(update),
-                update.callback_query.message.message_id,
-                reply_markup=None
+                update.callback_query.message.message_id
             )
         except AttributeError:
             pass
@@ -203,7 +212,8 @@ class Methods:
         context.bot.send_message(
             chat_id=update.effective_user.id,
             text=text,
-            reply_markup=reply_markup
+            reply_markup=reply_markup,
+            parse_mode=parse_mode
         )
 
     @classmethod
@@ -237,7 +247,7 @@ class Methods:
 
             return None
 
-        start = start + len(variable_pattern)
+        start += len(variable_pattern)
         end = cb_data.find('!', start) if cb_data.find('!', start) != -1 else len(cb_data)
 
         return cb_data[start: end]
