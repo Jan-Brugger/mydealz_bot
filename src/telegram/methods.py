@@ -1,7 +1,11 @@
+import html
+import json
 import logging
+import traceback
+from os import getenv
 from typing import Optional
 
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardMarkup, ParseMode, Update
 from telegram.ext import CallbackContext, ConversationHandler
 
 from src.db import columns
@@ -19,8 +23,26 @@ END_CONVERSATION: int = ConversationHandler.END
 class Methods:
 
     @classmethod
-    def error(cls, update: Update, context: CallbackContext) -> None:
-        logger.error('Error "%s" caused by update %s', context, update)
+    def error_handler(cls, update: Update, context: CallbackContext) -> None:
+        logger.error(msg='Exception while handling an update:', exc_info=context.error)
+        own_id = getenv('OWN_ID')
+
+        if not own_id:
+            return
+
+        tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+        tb_string = ''.join(tb_list)
+
+        message = (
+            f'An exception was raised while handling an update\n'
+            f'<pre>update = {html.escape(json.dumps(update.to_dict(), indent=2, ensure_ascii=False))}'
+            '</pre>\n\n'
+            f'<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n'
+            f'<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n'
+            f'<pre>{html.escape(tb_string)}</pre>'
+        )
+
+        context.bot.send_message(chat_id=own_id, text=message, parse_mode=ParseMode.HTML)
 
     @classmethod
     def start(cls, update: Update, context: CallbackContext) -> int:

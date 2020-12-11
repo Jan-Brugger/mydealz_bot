@@ -90,7 +90,7 @@ class Bot:
         dp.add_handler(update_price_conversation)
 
         # log errors
-        dp.add_error_handler(Methods.error)
+        dp.add_error_handler(Methods.error_handler)
 
         # start bot
         updater.start_polling()

@@ -1,4 +1,5 @@
 # mydealz_bot docker image
+
 This is a Docker container to run an telegram bot, to track mydealz.de for new deals.
 
 Currently only armv7 is supported.
@@ -20,6 +21,7 @@ Currently only armv7 is supported.
 | --restart=always                             | Start the container when Docker starts (i.e. on boot/reboot).                                                             |
 | -v /opt/mydealz_bot/files:/usr/src/app/files | Mount directory /usr/src/app/files from host machine. This directory contains the database, persistent chat-data and logs |
 | --env BOT_TOKEN=<<YOUR_BOT_TOKEN>>           | Your telegram-bot token. You can create one with @BotFather                                                               |
+| --env OWN_ID=<<YOUR_TELEGRAM_ID>>            | Your telegram-user-id. It's used to forward error-messages
 
 #### docker-compose
 
@@ -33,10 +35,12 @@ Currently only armv7 is supported.
           - /opt/mydealz_bot/files:/usr/src/app/files
         environment:
           - BOT_TOKEN=<<YOUR_BOT_TOKEN>>
+          - OWN_ID=<<YOUR_TELEGRAM_ID>>
 
 ### Development
 
 #### Requirements
+
 * Python 3.7
 * Docker
 
@@ -62,7 +66,6 @@ Create config
 Install pre-commit hooks
 
     pre-commit install
-
 
 #### Checks Before Commit
 
