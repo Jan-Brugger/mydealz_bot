@@ -1,4 +1,5 @@
 -r requirements.txt
 mypy==0.790
+pre-commit==2.9.3
 pylint==2.6.0
 pylint-quotes==0.2.1
