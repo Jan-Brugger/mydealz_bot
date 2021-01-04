@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 
 class Config:
-    BOT_TOKEN = None
+    BOT_TOKEN = ''
     LOG_LEVEL = 'INFO'
     FILE_DIR = 'files/'
     LOG_FILE = 'bot.log'
@@ -17,9 +17,10 @@ class Config:
     def init(cls) -> None:
         load_dotenv()
 
-        if not getenv('BOT_TOKEN'):
+        token = getenv('BOT_TOKEN')
+        if not token:
             raise NotImplementedError('Environment-variable BOT_TOKEN is missing!')
-        cls.BOT_TOKEN = getenv('BOT_TOKEN')
+        cls.BOT_TOKEN = token
         cls.LOG_LEVEL = getenv('LOG_LEVEL') or cls.LOG_LEVEL
         cls.FILE_DIR = (getenv('FILE_DIR') or cls.FILE_DIR).rstrip('/')
         cls.LOG_FILE = '{}/{}'.format(cls.FILE_DIR, getenv('LOG_FILE') or cls.LOG_FILE)

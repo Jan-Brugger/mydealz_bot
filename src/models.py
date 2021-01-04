@@ -52,10 +52,15 @@ class UserModel(Model):
         self.__last_name = value
 
     def parse_telegram_user(self, update: Update) -> UserModel:
+        if not update.effective_chat:
+            raise Exception('Chat is missing for update', update)
+
         self.id = update.effective_chat.id
         self.username = update.effective_chat.title or update.effective_chat.username or ''
-        self.first_name = update.effective_user.first_name or ''
-        self.last_name = update.effective_user.last_name or ''
+
+        if update.effective_user:
+            self.first_name = update.effective_user.first_name or ''
+            self.last_name = update.effective_user.last_name or ''
 
         return self
 

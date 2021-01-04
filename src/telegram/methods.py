@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 from os import getenv
-from typing import Optional
+from typing import Any, Optional
 
 from telegram import InlineKeyboardMarkup, ParseMode, Update
 from telegram.ext import CallbackContext, ConversationHandler
@@ -24,6 +24,11 @@ class Methods:
 
     @classmethod
     def error_handler(cls, update: Update, context: CallbackContext) -> None:
+        if not context.error:
+            logger.error('Exception while handling following update: %s', update)
+
+            return
+
         logger.error(msg='Exception while handling an update:', exc_info=context.error)
         own_id = getenv('OWN_ID')
 
@@ -58,7 +63,7 @@ class Methods:
         cls.send_message(update, context, messages.start(), keyboards.start(notifications))
 
         # cleanup
-        context.user_data.clear()
+        cls.clear_user_data(context)
         return END_CONVERSATION
 
     @classmethod
@@ -76,7 +81,7 @@ class Methods:
         cls.overwrite_message(update, context, message, keyboards.start(notifications))
 
         # cleanup
-        context.user_data.clear()
+        cls.clear_user_data(context)
         return END_CONVERSATION
 
     @classmethod
@@ -93,7 +98,7 @@ class Methods:
         notification.user_id = cls.get_user_id(update)
         notification.query = cls.get_text(update)
         notification.id = SQLiteNotifications().upsert_model(notification)
-        context.user_data[NOTIFICATION] = notification
+        cls.set_user_data(context, NOTIFICATION, notification)
 
         logging.info('user %s added notification %s (%s)', notification.user_id, notification.id, notification.query)
         cls.send_message(update, context, messages.notification_added(notification),
@@ -198,6 +203,9 @@ class Methods:
 
     @classmethod
     def get_user_id(cls, update: Update) -> int:
+        if not update.effective_user:
+            raise Exception('User is missing for update', update)
+
         return int(update.effective_user.id)
 
     @classmethod
@@ -232,7 +240,7 @@ class Methods:
             pass
 
         context.bot.send_message(
-            chat_id=update.effective_user.id,
+            chat_id=cls.get_user_id(update),
             text=text,
             reply_markup=reply_markup,
             parse_mode=parse_mode
@@ -240,20 +248,17 @@ class Methods:
 
     @classmethod
     def get_notification(cls, update: Update, context: CallbackContext) -> NotificationModel:
-        notification = None
-        if NOTIFICATION in context.user_data:
-            notification = context.user_data[NOTIFICATION]
-        else:
+        notification = cls.get_user_data(context, NOTIFICATION)
+        if not notification:
             notification_id = cls.get_callback_variable(update, NOTIFICATION_ID)
             if notification_id:
                 notification = SQLiteNotifications().get_by_id(int(notification_id))
-                context.user_data[NOTIFICATION] = notification
+                cls.set_user_data(context, NOTIFICATION, notification)
 
-        if isinstance(notification, NotificationModel):
-            return notification
+        if not isinstance(notification, NotificationModel):
+            raise Exception('Notification not found!')
 
-        logging.error('Notification not found in update "%s" with context "%s"', update, context)
-        raise FileNotFoundError
+        return notification
 
     @classmethod
     def get_callback_variable(cls, update: Update, variable: str) -> Optional[str]:
@@ -273,3 +278,19 @@ class Methods:
         end = cb_data.find('!', start) if cb_data.find('!', start) != -1 else len(cb_data)
 
         return cb_data[start: end]
+
+    @classmethod
+    def get_user_data(cls, context: CallbackContext, key: str) -> Any:
+        return context.user_data.get(key) if context.user_data else None
+
+    @classmethod
+    def set_user_data(cls, context: CallbackContext, key: str, value: Any) -> None:
+        if not isinstance(context.user_data, dict):
+            raise Exception('user_data is not a dictionary')
+
+        context.user_data[key] = value
+
+    @classmethod
+    def clear_user_data(cls, context: CallbackContext) -> None:
+        if context.user_data:
+            context.user_data.clear()

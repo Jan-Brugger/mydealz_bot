@@ -30,12 +30,6 @@ Install pre-commit hooks
 
     pre-commit install
 
-#### Checks Before Commit
-
-After adding extra dependencies to project please regenerate new requirements file:
-
-    ./venv/bin/pip freeze > requirements.txt
-
 #### Service launching
 
 Run service in Python:
