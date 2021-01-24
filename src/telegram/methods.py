@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 END_CONVERSATION: int = ConversationHandler.END
 
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument,too-many-public-methods
 class Methods:
 
     @classmethod
@@ -287,7 +287,7 @@ class Methods:
         if start == -1:
             logger.warning('Variable %s not found in %s', variable, update)
 
-            return None
+            return ''
 
         start += len(variable_pattern)
         end = cb_data.find('!', start) if cb_data.find('!', start) != -1 else len(cb_data)

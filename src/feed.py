@@ -2,7 +2,7 @@ import logging
 from time import mktime, struct_time
 from typing import List
 
-from feedparser import parse
+from feedparser import FeedParserDict, parse
 
 from src.bot import Bot
 from src.config import Config
@@ -70,7 +70,7 @@ class Feed:
             last_update_file.close()
 
     @classmethod
-    def parse_entry(cls, entry: dict) -> DealModel:
+    def parse_entry(cls, entry: FeedParserDict) -> DealModel:
         deal = DealModel()
         deal.title = entry.get('title', '')
         deal.description = entry.get('description', '')

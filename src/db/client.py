@@ -38,6 +38,6 @@ class SQLiteClient:
     def add_column(self, table_name: str, column_name: str, column_definition: str) -> None:
         self.execute('ALTER TABLE {0} ADD {1} {2}'.format(table_name, column_name, column_definition))
 
-    def get_all_columns(self, table_name: str) -> List:
+    def get_all_columns(self, table_name: str) -> List[str]:
         c = self.execute('SELECT * FROM ' + table_name + ' LIMIT 1')
         return [description[0] for description in c.description]

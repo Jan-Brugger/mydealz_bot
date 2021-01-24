@@ -74,7 +74,7 @@ Delete Docker container:
 
 #### Validate static typing
 
-    mypy run.py
+    mypy daemon.py
 
 ### Docker readme
 This is a Docker container to run a telegram bot that tracks mydealz.de for new deals.
