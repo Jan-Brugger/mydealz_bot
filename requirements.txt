@@ -1,6 +1,6 @@
-APScheduler
 feedparser==6.0.2
 python-dotenv==0.15.0
 python-telegram-bot==13.1
-telegram
 timeloop==1.0.2
+APScheduler #  contained in python-telegram-bot
+telegram # contained in python-telegram-bot

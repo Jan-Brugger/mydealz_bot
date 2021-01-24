@@ -4,7 +4,7 @@ from os import getenv
 from telegram import Bot as TelegramBot, ParseMode
 from telegram.error import ChatMigrated, TimedOut, Unauthorized
 from telegram.ext import CallbackQueryHandler as CQHandler, CommandHandler as CmdHandler, ConversationHandler, \
-    Filters, MessageHandler as MsgHandler, PicklePersistence, RegexHandler, Updater
+    Filters, MessageHandler as MsgHandler, PicklePersistence, Updater
 from telegram.utils.request import Request
 
 from src.config import Config
@@ -87,7 +87,7 @@ class Bot:
             update_price_conversation,
             CQHandler(Methods.add_notification, pattern=r'^{}.*$'.format(ADD_NOTIFICATION)),  # type: ignore
             CQHandler(Methods.start, pattern=r'^{}$'.format(CANCEL)),  # type: ignore
-            RegexHandler(QUERY_PATTERN, Methods.add_notification_inconclusive)  # type: ignore
+            MsgHandler(Filters.regex(QUERY_PATTERN), Methods.add_notification_inconclusive)  # type: ignore
         ]
 
         dispatcher = updater.dispatcher  # type: ignore
