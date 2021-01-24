@@ -1,85 +1,7 @@
 # mydealz_bot
-
-### Development
-
-#### Requirements
-
-* Python 3.8
-* Docker
-
-#### Installing
-
-Configure your project virtual environment:
-
-    python3 -m venv ./venv
-
-Switch to your virtual environment:
-
-    source ./venv/bin/activate
-
-Install virtual environment dependencies:
-
-    pip install --upgrade pip
-    pip install -r requirements-dev.txt
-
-Create config
-
-    cp .env.example .env
-
-Install pre-commit hooks
-
-    pre-commit install
-
-#### Service launching
-
-Run service in Python:
-
-    python daemon.py
-
-Run bot only:
-
-    python src/bot.py
-
-Run feed-parser only:
-
-    python src/feed.py
-
-To stop it press:
-
-    Control + C
-
-Create Docker container:
-
-    docker build -t mydealz_bot .
-
-Run Docker container:
-
-    docker run --env BOT_TOKEN=YOUR-TOKEN --name mydealz_bot mydealz_bot
-
-Run Docker container in background:
-
-    docker run --env BOT_TOKEN=YOUR-TOKEN -dit --restart unless-stopped --name mydealz_bot mydealz_bot
-
-Stop Docker container:
-
-    docker stop mydealz_bot
-
-Delete Docker container:
-
-    docker rm mydealz_bot
-
-#### Validate code syntax with pylint
-
-    pylint ./*.py src
-
-#### Validate static typing
-
-    mypy daemon.py
-
-### Docker readme
 This is a Docker container to run a telegram bot that tracks mydealz.de for new deals.
 
-#### Command line
+## Command line
 
     docker run -d --name=mydealz_bot \
     --restart=always \
@@ -88,7 +10,7 @@ This is a Docker container to run a telegram bot that tracks mydealz.de for new 
     --env BOT_TOKEN=<<YOUR_BOT_TOKEN>> \
     weltraumpenner/mydealz_bot:latest
 
-#### Command line Options
+### Command line Options
 
 | Parameter                                    | Description                                                                                                               |
 |----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
@@ -98,7 +20,7 @@ This is a Docker container to run a telegram bot that tracks mydealz.de for new 
 | --env BOT_TOKEN=<<YOUR_BOT_TOKEN>>           | Your telegram-bot token. You can create one with @BotFather                                                               |
 | --env OWN_ID=<<YOUR_TELEGRAM_ID>>            | Your telegram-user-id. It's used to forward error-messages
 
-#### docker-compose
+### docker-compose.yaml
 
     version: '3'
     services:
@@ -112,3 +34,16 @@ This is a Docker container to run a telegram bot that tracks mydealz.de for new 
         environment:
           - BOT_TOKEN=<<YOUR_BOT_TOKEN>>
           - OWN_ID=<<YOUR_TELEGRAM_ID>>
+
+### Troubleshooting
+
+**"can't initialize time"-error on Raspberry Pi**
+
+Update libseccomp2.deb
+- Find latest libseccomp2.deb on http://ftp.us.debian.org/debian/pool/main/libs/libseccomp
+
+- Download and install
+
+      cd /tmp
+      wget http://ftp.us.debian.org/debian/pool/main/libs/libseccomp/libseccomp2_2.5.0-3_armhf.deb
+      sudo dpkg -i libseccomp2_2.5.0-3_armhf.deb
