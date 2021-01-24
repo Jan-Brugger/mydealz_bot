@@ -12,7 +12,8 @@ from src.db import columns
 from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
-from src.telegram.constants import ADD_NOTIFICATION, EDIT_MAX_PRICE, EDIT_QUERY, NOTIFICATION, NOTIFICATION_ID
+from src.telegram.constants import ADD_NOTIFICATION, EDIT_MAX_PRICE, EDIT_QUERY, NOTIFICATION, NOTIFICATION_ID, \
+    VARIABLE_PATTERN
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ class Methods:
         logging.debug('%s %s', update, context)
         notification = NotificationModel()
         notification.user_id = cls.get_user_id(update)
-        notification.query = cls.get_text(update)
+        notification.query = cls.get_text(update) or cls.get_callback_variable(update, ADD_NOTIFICATION)
         notification.id = SQLiteNotifications().upsert_model(notification)
         cls.set_user_data(context, NOTIFICATION, notification)
 
@@ -202,6 +203,17 @@ class Methods:
         cls.home(update, context, messages.notification_deleted(notification))
 
     @classmethod
+    def add_notification_inconclusive(cls, update: Update, context: CallbackContext) -> None:
+        text = cls.get_text(update)
+
+        cls.send_message(
+            update,
+            context,
+            messages.add_notification_inconclusive(text),
+            keyboards.add_notification_inconclusive(text)
+        )
+
+    @classmethod
     def get_user_id(cls, update: Update) -> int:
         if not update.effective_user:
             raise Exception('User is missing for update', update)
@@ -210,7 +222,10 @@ class Methods:
 
     @classmethod
     def get_text(cls, update: Update) -> str:
-        return str(update.message.text)
+        if update.message:
+            return str(update.message.text)
+
+        return ''
 
     @classmethod
     def overwrite_message(cls, update: Update, context: CallbackContext,
@@ -261,8 +276,8 @@ class Methods:
         return notification
 
     @classmethod
-    def get_callback_variable(cls, update: Update, variable: str) -> Optional[str]:
-        variable_pattern = '!!{}='.format(variable)
+    def get_callback_variable(cls, update: Update, variable: str) -> str:
+        variable_pattern = VARIABLE_PATTERN.format(variable=variable, value='')
         if not update.callback_query or not update.callback_query.data:
             return ''
 

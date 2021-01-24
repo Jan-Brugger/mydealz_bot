@@ -3,8 +3,8 @@ from typing import List
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.models import NotificationModel
-from src.telegram.constants import ADD_NOTIFICATION, DELETE_NOTIFICATION, EDIT_MAX_PRICE, EDIT_NOTIFICATION, EDIT_QUERY, \
-    HOME, NOTIFICATION_ID, ONLY_HOT_TOGGLE, VARIABLE_PATTERN
+from src.telegram.constants import ADD_NOTIFICATION, CANCEL, DELETE_NOTIFICATION, EDIT_MAX_PRICE, EDIT_NOTIFICATION, \
+    EDIT_QUERY, HOME, NOTIFICATION_ID, ONLY_HOT_TOGGLE, VARIABLE_PATTERN
 
 
 def start(notifications: List[NotificationModel]) -> InlineKeyboardMarkup:
@@ -54,4 +54,12 @@ def deal_kb(notification: NotificationModel) -> InlineKeyboardMarkup:
         InlineKeyboardButton('🗒️ Übersicht', callback_data=EDIT_NOTIFICATION + id_suffix),
         InlineKeyboardButton('❌ Löschen', callback_data=DELETE_NOTIFICATION + id_suffix),
         InlineKeyboardButton('🏠 Home', callback_data=HOME)
+    ]])
+
+
+def add_notification_inconclusive(text: str) -> InlineKeyboardMarkup:
+    suffix = VARIABLE_PATTERN.format(variable=ADD_NOTIFICATION, value=text)
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton('✅ Ja', callback_data=ADD_NOTIFICATION + suffix),
+        InlineKeyboardButton('❌ Nein', callback_data=CANCEL),
     ]])

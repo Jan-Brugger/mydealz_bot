@@ -4,14 +4,15 @@ from os import getenv
 from telegram import Bot as TelegramBot, ParseMode
 from telegram.error import ChatMigrated, TimedOut, Unauthorized
 from telegram.ext import CallbackQueryHandler as CQHandler, CommandHandler as CmdHandler, ConversationHandler, \
-    Filters, MessageHandler as MsgHandler, PicklePersistence, Updater
+    Filters, MessageHandler as MsgHandler, PicklePersistence, RegexHandler, Updater
 from telegram.utils.request import Request
 
 from src.config import Config
 from src.core import Core
 from src.models import DealModel, NotificationModel
 from src.telegram import keyboards, messages
-from src.telegram.constants import ADD_NOTIFICATION, DELETE_NOTIFICATION, EDIT_MAX_PRICE, EDIT_NOTIFICATION, EDIT_QUERY, \
+from src.telegram.constants import ADD_NOTIFICATION, CANCEL, DELETE_NOTIFICATION, EDIT_MAX_PRICE, EDIT_NOTIFICATION, \
+    EDIT_QUERY, \
     HOME, ONLY_HOT_TOGGLE
 from src.telegram.methods import Methods
 
@@ -38,7 +39,7 @@ class Bot:
                 ADD_NOTIFICATION: [MsgHandler(Filters.regex(QUERY_PATTERN), Methods.add_notification)],  # type: ignore
             },
             fallbacks=[
-                CmdHandler('cancel', Methods.home),  # type: ignore
+                CmdHandler(CANCEL, Methods.home),  # type: ignore
                 MsgHandler(Filters.all, Methods.add_notification_failed)  # type: ignore
             ],
             allow_reentry=True
@@ -52,7 +53,7 @@ class Bot:
                 EDIT_QUERY: [MsgHandler(Filters.regex(QUERY_PATTERN), Methods.update_query)],  # type: ignore
             },
             fallbacks=[
-                CmdHandler('cancel', Methods.show_notification),  # type: ignore
+                CmdHandler(CANCEL, Methods.show_notification),  # type: ignore
                 MsgHandler(Filters.all, Methods.update_query_failed)  # type: ignore
             ],
             allow_reentry=True
@@ -69,7 +70,7 @@ class Bot:
                 ]
             },
             fallbacks=[
-                CmdHandler('cancel', Methods.show_notification),  # type: ignore
+                CmdHandler(CANCEL, Methods.show_notification),  # type: ignore
                 MsgHandler(Filters.all, Methods.update_price_failed)  # type: ignore
             ],
             allow_reentry=True
@@ -83,7 +84,10 @@ class Bot:
             CQHandler(Methods.delete_notification, pattern=r'^{}.*$'.format(DELETE_NOTIFICATION)),  # type: ignore
             add_notification_conversation,
             update_query_conversation,
-            update_price_conversation
+            update_price_conversation,
+            CQHandler(Methods.add_notification, pattern=r'^{}.*$'.format(ADD_NOTIFICATION)),  # type: ignore
+            CQHandler(Methods.start, pattern=r'^{}$'.format(CANCEL)),  # type: ignore
+            RegexHandler(QUERY_PATTERN, Methods.add_notification_inconclusive)  # type: ignore
         ]
 
         dispatcher = updater.dispatcher  # type: ignore

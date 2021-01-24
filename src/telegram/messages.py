@@ -70,3 +70,7 @@ def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
         message += '\n Preis: {:.2f} €'.format(deal.price)
 
     return message
+
+
+def add_notification_inconclusive(text: str) -> str:
+    return 'Möchtest Du eine Benachrichtigung für "{}" erstellen?'.format(text)
