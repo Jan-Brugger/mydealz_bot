@@ -10,6 +10,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 
 from src.db import columns
 from src.db.tables import SQLiteNotifications, SQLiteUser
+from src.exceptions import NotificationNotFoundError
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
 from src.telegram.constants import ADD_NOTIFICATION, EDIT_MAX_PRICE, EDIT_QUERY, NOTIFICATION, NOTIFICATION_ID, \
@@ -27,6 +28,11 @@ class Methods:
     def error_handler(cls, update: Update, context: CallbackContext) -> None:
         if not context.error:
             logger.error('Exception while handling following update: %s', update)
+
+            return
+
+        if isinstance(context.error, NotificationNotFoundError):
+            cls.notification_not_found(update, context)
 
             return
 
@@ -214,6 +220,10 @@ class Methods:
         )
 
     @classmethod
+    def notification_not_found(cls, update: Update, context: CallbackContext) -> None:
+        cls.overwrite_message(update, context, messages.notification_not_found())
+
+    @classmethod
     def get_user_id(cls, update: Update) -> int:
         if not update.effective_user:
             raise Exception('User is missing for update', update)
@@ -264,14 +274,18 @@ class Methods:
     @classmethod
     def get_notification(cls, update: Update, context: CallbackContext) -> NotificationModel:
         notification = cls.get_user_data(context, NOTIFICATION)
-        if not notification:
-            notification_id = cls.get_callback_variable(update, NOTIFICATION_ID)
-            if notification_id:
-                notification = SQLiteNotifications().get_by_id(int(notification_id))
-                cls.set_user_data(context, NOTIFICATION, notification)
+
+        if isinstance(notification, NotificationModel):
+            return notification
+
+        notification_id = cls.get_callback_variable(update, NOTIFICATION_ID)
+        if notification_id:
+            notification = SQLiteNotifications().get_by_id(int(notification_id))
 
         if not isinstance(notification, NotificationModel):
-            raise Exception('Notification not found!')
+            raise NotificationNotFoundError()
+
+        cls.set_user_data(context, NOTIFICATION, notification)
 
         return notification
 

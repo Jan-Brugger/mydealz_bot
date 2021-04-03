@@ -74,3 +74,7 @@ def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
 
 def add_notification_inconclusive(text: str) -> str:
     return 'Möchtest Du eine Benachrichtigung für "{}" erstellen?'.format(text)
+
+
+def notification_not_found() -> str:
+    return 'Die Benachrichtigung wurde bereits gelöscht.'
