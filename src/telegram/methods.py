@@ -273,19 +273,20 @@ class Methods:
 
     @classmethod
     def get_notification(cls, update: Update, context: CallbackContext) -> NotificationModel:
-        notification = cls.get_user_data(context, NOTIFICATION)
-
-        if isinstance(notification, NotificationModel):
-            return notification
-
+        notification = None
         notification_id = cls.get_callback_variable(update, NOTIFICATION_ID)
         if notification_id:
             notification = SQLiteNotifications().get_by_id(int(notification_id))
 
+        if isinstance(notification, NotificationModel):
+            cls.set_user_data(context, NOTIFICATION, notification)
+
+            return notification
+
+        notification = cls.get_user_data(context, NOTIFICATION)
+
         if not isinstance(notification, NotificationModel):
             raise NotificationNotFoundError()
-
-        cls.set_user_data(context, NOTIFICATION, notification)
 
         return notification
 
