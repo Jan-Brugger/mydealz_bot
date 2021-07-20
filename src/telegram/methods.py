@@ -3,29 +3,31 @@ import json
 import logging
 import traceback
 from os import getenv
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from telegram import InlineKeyboardMarkup, ParseMode, Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import (CallbackContext, ConversationHandler)
 
 from src.db import columns
 from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.exceptions import NotificationNotFoundError
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
-from src.telegram.constants import ADD_NOTIFICATION, EDIT_MAX_PRICE, EDIT_QUERY, NOTIFICATION, NOTIFICATION_ID, \
-    VARIABLE_PATTERN
+from src.telegram.constants import ADD_NOTIFICATION, EDIT_MAX_PRICE, EDIT_MIN_PRICE, EDIT_QUERY, NOTIFICATION, \
+    NOTIFICATION_ID, VARIABLE_PATTERN
 
 logger = logging.getLogger(__name__)
 
 END_CONVERSATION: int = ConversationHandler.END
 
+TCallbackContext = CallbackContext[Dict[Any, Any], Dict[Any, Any], Dict[Any, Any]]
 
-# pylint: disable=unused-argument,too-many-public-methods
+
+# pylint: disable=too-many-public-methods
 class Methods:
 
     @classmethod
-    def error_handler(cls, update: Update, context: CallbackContext) -> None:
+    def error_handler(cls, update: Update, context: TCallbackContext) -> None:
         if not context.error:
             logger.error('Exception while handling following update: %s', update)
 
@@ -57,7 +59,7 @@ class Methods:
         context.bot.send_message(chat_id=own_id, text=message, parse_mode=ParseMode.HTML)
 
     @classmethod
-    def start(cls, update: Update, context: CallbackContext) -> int:
+    def start(cls, update: Update, context: TCallbackContext) -> int:
         logging.debug('%s %s', update, context)
         sqlite_user = SQLiteUser()
         user = sqlite_user.get_by_id(cls.get_user_id(update))
@@ -74,13 +76,13 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
-    def help(cls, update: Update, context: CallbackContext) -> int:
+    def help(cls, update: Update, context: TCallbackContext) -> int:
         cls.send_message(update, context, messages.help_msg(), parse_mode='HTML')
 
         return END_CONVERSATION
 
     @classmethod
-    def home(cls, update: Update, context: CallbackContext, add_message: str = '') -> int:
+    def home(cls, update: Update, context: TCallbackContext, add_message: str = '') -> int:
         logging.debug('%s %s', update, context)
         notifications = SQLiteNotifications().get_by_user_id(cls.get_user_id(update))
 
@@ -92,14 +94,14 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
-    def add_notification_trigger(cls, update: Update, context: CallbackContext) -> str:
+    def add_notification_trigger(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
         cls.overwrite_message(update, context, messages.query_instructions())
 
         return ADD_NOTIFICATION
 
     @classmethod
-    def add_notification(cls, update: Update, context: CallbackContext) -> int:
+    def add_notification(cls, update: Update, context: TCallbackContext) -> int:
         logging.debug('%s %s', update, context)
         notification = NotificationModel()
         notification.user_id = cls.get_user_id(update)
@@ -114,14 +116,14 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
-    def add_notification_failed(cls, update: Update, context: CallbackContext) -> str:
+    def add_notification_failed(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.invalid_query())
 
         return ADD_NOTIFICATION
 
     @classmethod
-    def show_notification(cls, update: Update, context: CallbackContext, overwrite: bool = False) -> int:
+    def show_notification(cls, update: Update, context: TCallbackContext, overwrite: bool = False) -> int:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
 
@@ -135,14 +137,14 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
-    def update_query_trigger(cls, update: Update, context: CallbackContext) -> str:
+    def update_query_trigger(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.query_instructions())
 
         return EDIT_QUERY
 
     @classmethod
-    def update_query(cls, update: Update, context: CallbackContext) -> int:
+    def update_query(cls, update: Update, context: TCallbackContext) -> int:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
         notification.query = cls.get_text(update)
@@ -154,21 +156,51 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
-    def update_query_failed(cls, update: Update, context: CallbackContext) -> str:
+    def update_query_failed(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.invalid_query())
 
         return EDIT_QUERY
 
     @classmethod
-    def update_price_trigger(cls, update: Update, context: CallbackContext) -> str:
+    def update_min_price_trigger(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
-        cls.send_message(update, context, messages.price_instructions())
+        cls.send_message(update, context, messages.price_instructions('Min'))
+
+        return EDIT_MIN_PRICE
+
+    @classmethod
+    def update_min_price(cls, update: Update, context: TCallbackContext) -> int:
+        logging.debug('%s %s', update, context)
+        price = cls.get_text(update)
+        if price == '/remove':
+            price = '0'
+
+        notification = cls.get_notification(update, context)
+        notification.min_price = round(float(price.replace(',', '.')))
+        SQLiteNotifications().update(notification.id, columns.MIN_PRICE, notification.min_price)
+
+        cls.send_message(update, context, messages.query_updated(notification),
+                         keyboards.notification_commands(notification))
+
+        return END_CONVERSATION
+
+    @classmethod
+    def update_min_price_failed(cls, update: Update, context: TCallbackContext) -> str:
+        logging.debug('%s %s', update, context)
+        cls.send_message(update, context, messages.invalid_price('Min'))
+
+        return EDIT_MIN_PRICE
+
+    @classmethod
+    def update_max_price_trigger(cls, update: Update, context: TCallbackContext) -> str:
+        logging.debug('%s %s', update, context)
+        cls.send_message(update, context, messages.price_instructions('Max'))
 
         return EDIT_MAX_PRICE
 
     @classmethod
-    def update_price(cls, update: Update, context: CallbackContext) -> int:
+    def update_max_price(cls, update: Update, context: TCallbackContext) -> int:
         logging.debug('%s %s', update, context)
         price = cls.get_text(update)
         if price == '/remove':
@@ -184,14 +216,14 @@ class Methods:
         return END_CONVERSATION
 
     @classmethod
-    def update_price_failed(cls, update: Update, context: CallbackContext) -> str:
+    def update_max_price_failed(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
-        cls.send_message(update, context, messages.invalid_price())
+        cls.send_message(update, context, messages.invalid_price('Max'))
 
         return EDIT_MAX_PRICE
 
     @classmethod
-    def toggle_only_hot(cls, update: Update, context: CallbackContext) -> None:
+    def toggle_only_hot(cls, update: Update, context: TCallbackContext) -> None:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
         notification.search_only_hot = not notification.search_only_hot
@@ -200,7 +232,7 @@ class Methods:
         cls.show_notification(update, context, True)
 
     @classmethod
-    def delete_notification(cls, update: Update, context: CallbackContext) -> None:
+    def delete_notification(cls, update: Update, context: TCallbackContext) -> None:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
         SQLiteNotifications().delete_by_id(notification.id)
@@ -209,7 +241,7 @@ class Methods:
         cls.home(update, context, messages.notification_deleted(notification))
 
     @classmethod
-    def add_notification_inconclusive(cls, update: Update, context: CallbackContext) -> None:
+    def add_notification_inconclusive(cls, update: Update, context: TCallbackContext) -> None:
         text = cls.get_text(update)
 
         cls.send_message(
@@ -220,7 +252,7 @@ class Methods:
         )
 
     @classmethod
-    def notification_not_found(cls, update: Update, context: CallbackContext) -> None:
+    def notification_not_found(cls, update: Update, context: TCallbackContext) -> None:
         cls.overwrite_message(update, context, messages.notification_not_found())
 
     @classmethod
@@ -238,7 +270,7 @@ class Methods:
         return ''
 
     @classmethod
-    def overwrite_message(cls, update: Update, context: CallbackContext,
+    def overwrite_message(cls, update: Update, context: TCallbackContext,
                           text: str,
                           reply_markup: Optional[InlineKeyboardMarkup] = None,
                           parse_mode: Optional[str] = None) -> None:
@@ -251,7 +283,7 @@ class Methods:
             cls.send_message(update, context, text, reply_markup, parse_mode)
 
     @classmethod
-    def send_message(cls, update: Update, context: CallbackContext,
+    def send_message(cls, update: Update, context: TCallbackContext,
                      text: str,
                      reply_markup: Optional[InlineKeyboardMarkup] = None,
                      parse_mode: Optional[str] = None) -> None:
@@ -272,7 +304,7 @@ class Methods:
         )
 
     @classmethod
-    def get_notification(cls, update: Update, context: CallbackContext) -> NotificationModel:
+    def get_notification(cls, update: Update, context: TCallbackContext) -> NotificationModel:
         notification = None
         notification_id = cls.get_callback_variable(update, NOTIFICATION_ID)
         if notification_id:
@@ -310,17 +342,17 @@ class Methods:
         return cb_data[start: end]
 
     @classmethod
-    def get_user_data(cls, context: CallbackContext, key: str) -> Any:
+    def get_user_data(cls, context: TCallbackContext, key: str) -> Any:
         return context.user_data.get(key) if context.user_data else None
 
     @classmethod
-    def set_user_data(cls, context: CallbackContext, key: str, value: Any) -> None:
+    def set_user_data(cls, context: TCallbackContext, key: str, value: Any) -> None:
         if not isinstance(context.user_data, dict):
             raise Exception('user_data is not a dictionary')
 
         context.user_data[key] = value
 
     @classmethod
-    def clear_user_data(cls, context: CallbackContext) -> None:
+    def clear_user_data(cls, context: TCallbackContext) -> None:
         if context.user_data:
             context.user_data.clear()

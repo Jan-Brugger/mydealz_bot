@@ -11,8 +11,6 @@ TypeNotificationsRow = Tuple[int, int, str, int, int]
 TypeUsersRow = Tuple[int, str, str, str]
 
 
-
-
 class SQLiteTable(SQLiteClient):
 
     @property
@@ -39,7 +37,7 @@ class SQLiteTable(SQLiteClient):
         missing_column_names = set(self.table_columns).difference(existing_column_names)
 
         for missing_column in missing_column_names:
-            logging.info('Add column "%s"', self.table_name)
+            logging.info('Add column "%s" to "%s"', missing_column, self.table_name)
             self.add_column(self.table_name, missing_column, COLUMN_CONFIG[missing_column])
 
     def upsert(self, update: Dict[str, Any], sqlite_id: int = 0) -> int:
@@ -126,7 +124,7 @@ class SQLiteUser(SQLiteTable):
 
 class SQLiteNotifications(SQLiteTable):
     table_name = 'notifications'
-    table_columns = [column.UID, column.USER_ID, column.QUERY, column.MAX_PRICE, column.ONLY_HOT]
+    table_columns = [column.UID, column.USER_ID, column.QUERY, column.MIN_PRICE, column.MAX_PRICE, column.ONLY_HOT]
 
     @classmethod
     def parse_row(cls, row: Tuple[Union[str, int], ...]) -> NotificationModel:
@@ -134,7 +132,8 @@ class SQLiteNotifications(SQLiteTable):
         notification.id = int(row[cls.table_columns.index(column.UID)])
         notification.user_id = int(row[cls.table_columns.index(column.USER_ID)])
         notification.query = str(row[cls.table_columns.index(column.QUERY)])
-        notification.max_price = int(row[cls.table_columns.index(column.MAX_PRICE)])
+        notification.min_price = int(row[cls.table_columns.index(column.MIN_PRICE)] or 0)
+        notification.max_price = int(row[cls.table_columns.index(column.MAX_PRICE)] or 0)
         notification.search_only_hot = str(row[cls.table_columns.index(column.ONLY_HOT)]) == 'True'
 
         return notification
@@ -151,6 +150,7 @@ class SQLiteNotifications(SQLiteTable):
         update: Dict[str, Union[str, int, bool]] = {
             column.USER_ID: notification.user_id,
             column.QUERY: notification.query,
+            column.MIN_PRICE: notification.min_price,
             column.MAX_PRICE: notification.max_price,
             column.ONLY_HOT: notification.search_only_hot,
         }

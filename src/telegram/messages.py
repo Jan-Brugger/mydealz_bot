@@ -10,6 +10,8 @@ def help_msg() -> str:
            '\n\n<b>Suchbegriffe:</b>' \
            '\ncase-insensitive und führende/anhängende Leerzeichen werden entfernt.' \
            '\n-> "nutella&rewe,nutella&lidl" \nliefert die selben Ergebnisse wie \n"Nutella & REWE, Nutella & Lidl"' \
+           '\n\n<b>Minimaler Preis:</b>' \
+           '\nNur Benachrichtigungen für Deals mit höherer oder ohne Preisangabe' \
            '\n\n<b>Maximaler Preis:</b>' \
            '\nNur Benachrichtigungen für Deals mit niedrigerer oder ohne Preisangabe' \
            '\n\n<b>Reichweite:</b> ' \
@@ -34,25 +36,29 @@ def notification_added(notification: NotificationModel) -> str:
 
 def notification_overview(notification: NotificationModel) -> str:
     search_range = 'Nur heiße Deals' if notification.search_only_hot else 'Alle Deals'
-    return 'Suchbegriff: {query}\nMaximaler Preis: {max_price}\nReichweite: {range}'.format(
-        query=notification.query,
-        max_price=str(notification.max_price) + ' €' if notification.max_price else '-',
-        range=search_range
-    )
+    return 'Suchbegriff: {query}\n' \
+           'Minimaler Preis: {min_price}\n' \
+           'Maximaler Preis: {max_price}\n' \
+           'Reichweite: {range}'.format(
+                query=notification.query,
+                min_price=str(notification.min_price) + ' €' if notification.min_price else '-',
+                max_price=str(notification.max_price) + ' €' if notification.max_price else '-',
+                range=search_range
+            )
 
 
 def query_updated(notification: NotificationModel) -> str:
     return 'Suchbegriff aktualisiert\n\n{}'.format(notification_overview(notification))
 
 
-def price_instructions() -> str:
-    return 'Bitte gebe einen neuen Maximal-Preis an. ' \
-           '\n/remove um den Maximal-Preis zu löschen' \
-           '\n/cancel zum Abbrechen'
+def price_instructions(price_type: str) -> str:
+    return 'Bitte gebe einen neuen {0}imal-Preis an. ' \
+           '\n/remove um den {0}imal-Preis zu löschen' \
+           '\n/cancel zum Abbrechen'.format(price_type)
 
 
-def invalid_price() -> str:
-    return 'Der eingegebene Preis ist ungültig!\n\n{}'.format(price_instructions())
+def invalid_price(price_type: str) -> str:
+    return 'Der eingegebene Preis ist ungültig!\n\n{}'.format(price_instructions(price_type))
 
 
 def notification_deleted(notification: NotificationModel) -> str:

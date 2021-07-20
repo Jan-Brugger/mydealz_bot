@@ -30,8 +30,8 @@ class Feed:
 
     @classmethod
     def notify(cls, feed: str, notifications: List[NotificationModel], last_update_file_path: str) -> None:
-        last_update_file = open(last_update_file_path, 'r+')
-        last_update_ts = float(last_update_file.read() or 0)
+        with open(last_update_file_path, 'r') as last_update_file:
+            last_update_ts = float(last_update_file.read() or 0)
 
         entries = parse(feed)['entries']
         logging.debug('parsed feed %s, got %s entries', feed, len(entries))
@@ -48,8 +48,13 @@ class Feed:
                 latest_ts = deal.timestamp
 
             for notification in notifications:
+                if deal.price and notification.min_price and deal.price < notification.min_price:
+                    logging.debug('deal price (%s) is lower than searched min-price (%s) - skip',
+                                  deal.price, notification.max_price)
+                    continue
+
                 if deal.price and notification.max_price and deal.price > notification.max_price:
-                    logging.debug('deal price (%s) is higher than searched price (%s) - skip',
+                    logging.debug('deal price (%s) is higher than searched max-price (%s) - skip',
                                   deal.price, notification.max_price)
                     continue
 
@@ -65,9 +70,10 @@ class Feed:
         logging.info('parsed feed %s, got %s new entries', feed, new_entries)
         if latest_ts > last_update_ts:
             logging.info('update %s from %s to %s', last_update_file_path, last_update_ts, latest_ts)
-            last_update_file.seek(0, 0)
-            last_update_file.write(str(latest_ts))
-            last_update_file.close()
+            with open(last_update_file_path, 'r+') as last_update_file:
+                last_update_file.seek(0, 0)
+                last_update_file.write(str(latest_ts))
+                last_update_file.close()
 
     @classmethod
     def parse_entry(cls, entry: FeedParserDict) -> DealModel:

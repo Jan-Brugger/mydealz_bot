@@ -71,6 +71,7 @@ class NotificationModel(Model):
         self.__id: int = 0
         self.__user_id: int = 0
         self.__query: str = ''
+        self.__min_price: int = 0
         self.__max_price: int = 0
         self.__search_only_hot: bool = False
 
@@ -100,6 +101,14 @@ class NotificationModel(Model):
     @query.setter
     def query(self, value: str) -> None:
         self.__query = value
+
+    @property
+    def min_price(self) -> int:
+        return self.__min_price
+
+    @min_price.setter
+    def min_price(self, value: int) -> None:
+        self.__min_price = value
 
     @property
     def max_price(self) -> int:
@@ -184,15 +193,3 @@ class DealModel(Model):
     @timestamp.setter
     def timestamp(self, value: float) -> None:
         self.__timestamp = value
-
-
-@dataclass
-class FeedModel(Model):
-    def __init__(self) -> None:
-        self.__name: str = ''
-        self.__description: str = ''
-        self.__category: str = ''
-        self.__merchant: str = ''
-        self.__price: float = 0.0
-        self.__link: str = ''
-        self.__timestamp: float = 0.0
