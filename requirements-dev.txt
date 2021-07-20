@@ -1,5 +1,5 @@
 -r requirements.txt
-mypy==0.800
-pre-commit==2.9.3
-pylint==2.6.0
-pylint-quotes==0.2.1
+mypy==0.910
+pre-commit==2.13.0
+pylint==2.9.3
+pylint-quotes==0.2.3
