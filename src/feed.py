@@ -48,7 +48,7 @@ class Feed:
                 latest_ts = deal.timestamp
 
             for notification in notifications:
-                if deal.price and notification.min_price and deal.price < notification.min_price:
+                if notification.min_price and (not deal.price or deal.price < notification.min_price):
                     logging.debug('deal price (%s) is lower than searched min-price (%s) - skip',
                                   deal.price, notification.max_price)
                     continue
