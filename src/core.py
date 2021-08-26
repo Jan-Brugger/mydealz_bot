@@ -9,31 +9,30 @@ from src.db.tables import SQLiteTable
 class Core:
     @classmethod
     def init(cls) -> None:
-        # locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8') # TODO Fix locale for docker  # pylint: disable=fixme
-        cls.__init_config()
-        cls.__create_files()
-        cls.__init_logging()
-        cls.__init_database()
+        cls._init_config()
+        cls._create_files()
+        cls._init_logging()
+        cls._init_database()
 
     @classmethod
-    def __init_config(cls) -> None:
+    def _init_config(cls) -> None:
         Config.init()
 
     @classmethod
-    def __create_files(cls) -> None:
+    def _create_files(cls) -> None:
         if not isdir(Config.FILE_DIR):
             os.makedirs(Config.FILE_DIR)
 
         if not isfile(Config.LAST_UPDATE_ALL):
-            f = open(Config.LAST_UPDATE_ALL, 'w')
-            f.close()
+            with open(Config.LAST_UPDATE_ALL, 'w', encoding='utf-8'):
+                pass
 
         if not isfile(Config.LAST_UPDATE_HOT):
-            f = open(Config.LAST_UPDATE_HOT, 'w')
-            f.close()
+            with open(Config.LAST_UPDATE_HOT, 'w', encoding='utf-8'):
+                pass
 
     @classmethod
-    def __init_logging(cls) -> None:
+    def _init_logging(cls) -> None:
         logging.getLogger().setLevel(Config.LOG_LEVEL)
 
         file_log_handler = logging.FileHandler(Config.LOG_FILE)
@@ -48,7 +47,7 @@ class Core:
         stderr_log_handler.setFormatter(formatter)
 
     @classmethod
-    def __init_database(cls) -> None:
+    def _init_database(cls) -> None:
         tables = SQLiteTable.__subclasses__()
         for table in tables:
             table().init_table()  # type: ignore
