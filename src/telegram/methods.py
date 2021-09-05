@@ -13,8 +13,7 @@ from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.exceptions import NotificationNotFoundError
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
-from src.telegram.constants import ADD_NOTIFICATION, EDIT_MAX_PRICE, EDIT_MIN_PRICE, EDIT_QUERY, NOTIFICATION, \
-    NOTIFICATION_ID, VARIABLE_PATTERN
+from src.telegram.constants import Vars, VARIABLE_PATTERN
 
 logger = logging.getLogger(__name__)
 
@@ -98,16 +97,16 @@ class Methods:
         logging.debug('%s %s', update, context)
         cls.overwrite_message(update, context, messages.query_instructions())
 
-        return ADD_NOTIFICATION
+        return Vars.ADD_NOTIFICATION
 
     @classmethod
     def add_notification(cls, update: Update, context: TCallbackContext) -> int:
         logging.debug('%s %s', update, context)
         notification = NotificationModel()
         notification.user_id = cls.get_user_id(update)
-        notification.query = cls.get_text(update) or cls.get_callback_variable(update, ADD_NOTIFICATION)
+        notification.query = cls.get_text(update) or cls.get_callback_variable(update, Vars.ADD_NOTIFICATION)
         notification.id = SQLiteNotifications().upsert_model(notification)
-        cls.set_user_data(context, NOTIFICATION, notification)
+        cls.set_user_data(context, Vars.NOTIFICATION, notification)
 
         logging.info('user %s added notification %s (%s)', notification.user_id, notification.id, notification.query)
         cls.send_message(update, context, messages.notification_added(notification),
@@ -120,7 +119,7 @@ class Methods:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.invalid_query())
 
-        return ADD_NOTIFICATION
+        return Vars.ADD_NOTIFICATION
 
     @classmethod
     def show_notification(cls, update: Update, context: TCallbackContext, overwrite: bool = False) -> int:
@@ -141,7 +140,7 @@ class Methods:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.query_instructions())
 
-        return EDIT_QUERY
+        return Vars.EDIT_QUERY
 
     @classmethod
     def update_query(cls, update: Update, context: TCallbackContext) -> int:
@@ -160,14 +159,14 @@ class Methods:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.invalid_query())
 
-        return EDIT_QUERY
+        return Vars.EDIT_QUERY
 
     @classmethod
     def update_min_price_trigger(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.price_instructions('Min'))
 
-        return EDIT_MIN_PRICE
+        return Vars.EDIT_MIN_PRICE
 
     @classmethod
     def update_min_price(cls, update: Update, context: TCallbackContext) -> int:
@@ -190,14 +189,14 @@ class Methods:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.invalid_price('Min'))
 
-        return EDIT_MIN_PRICE
+        return Vars.EDIT_MIN_PRICE
 
     @classmethod
     def update_max_price_trigger(cls, update: Update, context: TCallbackContext) -> str:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.price_instructions('Max'))
 
-        return EDIT_MAX_PRICE
+        return Vars.EDIT_MAX_PRICE
 
     @classmethod
     def update_max_price(cls, update: Update, context: TCallbackContext) -> int:
@@ -220,7 +219,7 @@ class Methods:
         logging.debug('%s %s', update, context)
         cls.send_message(update, context, messages.invalid_price('Max'))
 
-        return EDIT_MAX_PRICE
+        return Vars.EDIT_MAX_PRICE
 
     @classmethod
     def toggle_only_hot(cls, update: Update, context: TCallbackContext) -> None:
@@ -306,16 +305,16 @@ class Methods:
     @classmethod
     def get_notification(cls, update: Update, context: TCallbackContext) -> NotificationModel:
         notification = None
-        notification_id = cls.get_callback_variable(update, NOTIFICATION_ID)
+        notification_id = cls.get_callback_variable(update, Vars.NOTIFICATION_ID)
         if notification_id:
             notification = SQLiteNotifications().get_by_id(int(notification_id))
 
         if isinstance(notification, NotificationModel):
-            cls.set_user_data(context, NOTIFICATION, notification)
+            cls.set_user_data(context, Vars.NOTIFICATION, notification)
 
             return notification
 
-        notification = cls.get_user_data(context, NOTIFICATION)
+        notification = cls.get_user_data(context, Vars.NOTIFICATION)
 
         if not isinstance(notification, NotificationModel):
             raise NotificationNotFoundError()

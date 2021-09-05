@@ -1,13 +1,18 @@
+from enum import Enum, auto
+
 VARIABLE_PATTERN = '!!{variable}={value}'
-NOTIFICATION_ID = 'notification_id'
-NOTIFICATION = 'notification'
-ADD_NOTIFICATION = 'add_notification'
-EDIT_NOTIFICATION = 'edit_notification'
-DELETE_NOTIFICATION = 'delete_notification'
-EDIT_QUERY = 'edit_query'
-EDIT_MAX_PRICE = 'edit_max_price'
-EDIT_MIN_PRICE = 'edit_min_price'
-SEARCH_ALL_DEALS = 'search_all'
-ONLY_HOT_TOGGLE = 'search_hot'
-HOME = 'home'
-CANCEL = 'cancel'
+
+
+class Vars(str, Enum):
+    NOTIFICATION_ID = auto()
+    NOTIFICATION = auto()
+    ADD_NOTIFICATION = auto()
+    EDIT_NOTIFICATION = auto()
+    DELETE_NOTIFICATION = auto()
+    EDIT_QUERY = auto()
+    EDIT_MAX_PRICE = auto()
+    EDIT_MIN_PRICE = auto()
+    SEARCH_ALL_DEALS = auto()
+    ONLY_HOT_TOGGLE = auto()
+    HOME = 'home'
+    CANCEL = 'cancel'

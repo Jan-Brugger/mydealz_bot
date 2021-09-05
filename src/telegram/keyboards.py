@@ -3,46 +3,46 @@ from typing import List
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.models import NotificationModel
-from src.telegram.constants import ADD_NOTIFICATION, CANCEL, DELETE_NOTIFICATION, EDIT_MAX_PRICE, EDIT_MIN_PRICE, \
-    EDIT_NOTIFICATION, EDIT_QUERY, HOME, NOTIFICATION_ID, ONLY_HOT_TOGGLE, VARIABLE_PATTERN
+from src.telegram.constants import VARIABLE_PATTERN, Vars
 
 
 def start(notifications: List[NotificationModel]) -> InlineKeyboardMarkup:
     keyboard = []
     for notification in sorted(notifications):
-        id_suffix = VARIABLE_PATTERN.format(variable=NOTIFICATION_ID, value=notification.id)
+        id_suffix = VARIABLE_PATTERN.format(variable=Vars.NOTIFICATION_ID, value=notification.id)
         keyboard.append([
-            InlineKeyboardButton('🔍 {}'.format(notification.query), callback_data=EDIT_NOTIFICATION + id_suffix)
+            InlineKeyboardButton('🔍 {}'.format(notification.query), callback_data=Vars.EDIT_NOTIFICATION + id_suffix)
         ])
 
-    keyboard.append([InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=ADD_NOTIFICATION)])
+    keyboard.append([InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=Vars.ADD_NOTIFICATION)])
 
     return InlineKeyboardMarkup(keyboard)
 
 
 def notification_commands(notification: NotificationModel) -> InlineKeyboardMarkup:
-    id_suffix = VARIABLE_PATTERN.format(variable=NOTIFICATION_ID, value=notification.id)
+    id_suffix = VARIABLE_PATTERN.format(variable=Vars.NOTIFICATION_ID, value=notification.id)
 
     if notification.search_only_hot:
-        hot_toggle = InlineKeyboardButton('🆕 Alle Deals senden', callback_data=ONLY_HOT_TOGGLE + id_suffix)
+        hot_toggle = InlineKeyboardButton('🆕 Alle Deals senden', callback_data=Vars.ONLY_HOT_TOGGLE + id_suffix)
     else:
-        hot_toggle = InlineKeyboardButton('🌶️ Nur heiße Deals senden', callback_data=ONLY_HOT_TOGGLE + id_suffix)
+        hot_toggle = InlineKeyboardButton('🌶️ Nur heiße Deals senden',
+                                          callback_data=Vars.ONLY_HOT_TOGGLE + id_suffix)
 
     keyboard = [
         [
-            InlineKeyboardButton('✏️️ Suchbegriff ändern', callback_data=EDIT_QUERY + id_suffix),
-            InlineKeyboardButton('❌ Löschen', callback_data=DELETE_NOTIFICATION + id_suffix),
+            InlineKeyboardButton('✏️️ Suchbegriff ändern', callback_data=Vars.EDIT_QUERY + id_suffix),
+            InlineKeyboardButton('❌ Löschen', callback_data=Vars.DELETE_NOTIFICATION + id_suffix),
         ],
         [
-            InlineKeyboardButton('💸 Minimalpreis ändern', callback_data=EDIT_MIN_PRICE + id_suffix),
-            InlineKeyboardButton('💰 Maximalpreis ändern', callback_data=EDIT_MAX_PRICE + id_suffix),
+            InlineKeyboardButton('💸 Minimalpreis ändern', callback_data=Vars.EDIT_MIN_PRICE + id_suffix),
+            InlineKeyboardButton('💰 Maximalpreis ändern', callback_data=Vars.EDIT_MAX_PRICE + id_suffix),
         ],
         [
             hot_toggle,
         ],
         [
-            InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=ADD_NOTIFICATION),
-            InlineKeyboardButton('🏠 Home', callback_data=HOME),
+            InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=Vars.ADD_NOTIFICATION),
+            InlineKeyboardButton('🏠 Home', callback_data=Vars.HOME),
         ]
     ]
 
@@ -50,17 +50,17 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
 
 
 def deal_kb(notification: NotificationModel) -> InlineKeyboardMarkup:
-    id_suffix = VARIABLE_PATTERN.format(variable=NOTIFICATION_ID, value=notification.id)
+    id_suffix = VARIABLE_PATTERN.format(variable=Vars.NOTIFICATION_ID, value=notification.id)
     return InlineKeyboardMarkup([[
-        InlineKeyboardButton('🗒️ Übersicht', callback_data=EDIT_NOTIFICATION + id_suffix),
-        InlineKeyboardButton('❌ Löschen', callback_data=DELETE_NOTIFICATION + id_suffix),
-        InlineKeyboardButton('🏠 Home', callback_data=HOME)
+        InlineKeyboardButton('🗒️ Übersicht', callback_data=Vars.EDIT_NOTIFICATION + id_suffix),
+        InlineKeyboardButton('❌ Löschen', callback_data=Vars.DELETE_NOTIFICATION + id_suffix),
+        InlineKeyboardButton('🏠 Home', callback_data=Vars.HOME)
     ]])
 
 
 def add_notification_inconclusive(text: str) -> InlineKeyboardMarkup:
-    suffix = VARIABLE_PATTERN.format(variable=ADD_NOTIFICATION, value=text)
+    suffix = VARIABLE_PATTERN.format(variable=Vars.ADD_NOTIFICATION, value=text)
     return InlineKeyboardMarkup([[
-        InlineKeyboardButton('✅ Ja', callback_data=ADD_NOTIFICATION + suffix),
-        InlineKeyboardButton('❌ Nein', callback_data=CANCEL),
+        InlineKeyboardButton('✅ Ja', callback_data=Vars.ADD_NOTIFICATION + suffix),
+        InlineKeyboardButton('❌ Nein', callback_data=Vars.CANCEL),
     ]])
