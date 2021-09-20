@@ -21,7 +21,7 @@ def help_msg() -> str:
 
 def query_instructions() -> str:
     return 'Bitte gebe eine Liste aus kommaseparierten Suchbegriffen ein.' \
-           '\nGültige Zeichen: (Buchstaben, Zahlen - , + &)' \
+           '\nGültige Zeichen: (Buchstaben, Zahlen - , + & .)' \
            '\nFür ein Multi-Matching nutze & (z.B.: zelda&switch)' \
            '\n/cancel zum Abbrechen'
 
