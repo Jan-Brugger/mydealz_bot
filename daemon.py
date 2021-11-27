@@ -9,6 +9,6 @@ if __name__ == '__main__':
     Core.init()
 
     scheduler = BackgroundScheduler()
-    job = scheduler.add_job(Feed().parse, 'interval', seconds=60, timezone=utc)
+    job = scheduler.add_job(Feed().parse, 'interval', seconds=60, timezone=utc, max_instances=50)
     scheduler.start()
     Bot().run()

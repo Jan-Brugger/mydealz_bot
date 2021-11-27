@@ -23,6 +23,7 @@ def query_instructions() -> str:
     return 'Bitte gebe eine Liste aus kommaseparierten Suchbegriffen ein.' \
            '\nGültige Zeichen: (Buchstaben, Zahlen - , + & .)' \
            '\nFür ein Multi-Matching nutze & (z.B.: zelda&switch)' \
+           '\nUm ein Wort auszuschließen nutze ! & (z.B.: PS5 & !lokal)' \
            '\n/cancel zum Abbrechen'
 
 
