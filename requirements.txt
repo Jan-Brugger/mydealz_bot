@@ -1,8 +1,7 @@
 feedparser==6.0.8
 python-dotenv==0.19.2
 python-telegram-bot==13.9
-timeloop==1.0.2
 types-pytz==2021.3.2
+pytz #  contained in python-telegram-bot
 APScheduler #  contained in python-telegram-bot
 telegram # contained in python-telegram-bot
-pytz # contained in python-telegram-bot

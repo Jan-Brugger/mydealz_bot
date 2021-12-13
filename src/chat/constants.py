@@ -14,5 +14,6 @@ class Vars(str, Enum):
     EDIT_MIN_PRICE = auto()
     SEARCH_ALL_DEALS = auto()
     ONLY_HOT_TOGGLE = auto()
+    SEARCH_MINDSTAR_TOGGLE = auto()
     HOME = 'home'
     CANCEL = 'cancel'

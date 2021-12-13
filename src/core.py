@@ -1,6 +1,6 @@
 import logging
 import os
-from os.path import isdir, isfile
+from os.path import isdir
 
 from src.config import Config
 from src.db.tables import SQLiteTable
@@ -22,14 +22,6 @@ class Core:
     def _create_files(cls) -> None:
         if not isdir(Config.FILE_DIR):
             os.makedirs(Config.FILE_DIR)
-
-        if not isfile(Config.LAST_UPDATE_ALL):
-            with open(Config.LAST_UPDATE_ALL, 'w', encoding='utf-8'):
-                pass
-
-        if not isfile(Config.LAST_UPDATE_HOT):
-            with open(Config.LAST_UPDATE_HOT, 'w', encoding='utf-8'):
-                pass
 
     @classmethod
     def _init_logging(cls) -> None:

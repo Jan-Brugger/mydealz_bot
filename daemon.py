@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import utc
@@ -12,12 +12,18 @@ if __name__ == '__main__':
 
     scheduler = BackgroundScheduler()
     job = scheduler.add_job(
-        Feed().parse,
+        Feed.parse,
         'interval',
         seconds=60,
         timezone=utc,
-        max_instances=50,
-        next_run_time=datetime.now()
+        max_instances=50
     )
     scheduler.start()
     Bot().run()
+
+    try:
+        # Keep thread alive
+        while True:
+            time.sleep(2)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()

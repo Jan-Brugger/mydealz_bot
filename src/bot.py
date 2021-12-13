@@ -8,12 +8,12 @@ from telegram.ext import CallbackQueryHandler as CQHandler, CommandHandler as Cm
     Filters, MessageHandler as MsgHandler, PicklePersistence, Updater
 from telegram.utils.request import Request
 
-from src.config import Config
-from src.core import Core
-from src.models import DealModel, NotificationModel
 from src.chat import keyboards, messages
 from src.chat.constants import Vars
 from src.chat.methods import Methods
+from src.config import Config
+from src.core import Core
+from src.models import DealModel, NotificationModel
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,7 @@ class Bot:
             CQHandler(Methods.home, pattern=fr'^{Vars.HOME}$'),
             CQHandler(Methods.show_notification, pattern=fr'^{Vars.EDIT_NOTIFICATION}.*$'),
             CQHandler(Methods.toggle_only_hot, pattern=fr'^{Vars.ONLY_HOT_TOGGLE}.*$'),
+            CQHandler(Methods.toggle_search_mindstar, pattern=fr'^{Vars.SEARCH_MINDSTAR_TOGGLE}.*$'),
             CQHandler(Methods.delete_notification, pattern=fr'^{Vars.DELETE_NOTIFICATION}.*$'),
             add_notification_conversation,
             update_query_conversation,

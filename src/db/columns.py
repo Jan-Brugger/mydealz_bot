@@ -7,6 +7,7 @@ QUERY = 'query'
 MIN_PRICE = 'min_price'
 MAX_PRICE = 'max_price'
 ONLY_HOT = 'hot_only'
+SEARCH_MINDSTAR = 'search_mindstar'
 
 COLUMN_CONFIG = {
     UID: 'INTEGER PRIMARY KEY AUTOINCREMENT',
@@ -18,4 +19,5 @@ COLUMN_CONFIG = {
     MIN_PRICE: 'INTEGER',
     MAX_PRICE: 'INTEGER',
     ONLY_HOT: 'BOOL',
+    SEARCH_MINDSTAR: 'BOOL',
 }

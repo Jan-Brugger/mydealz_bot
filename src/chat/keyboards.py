@@ -25,8 +25,17 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
     if notification.search_only_hot:
         hot_toggle = InlineKeyboardButton('🆕 Alle Deals senden', callback_data=Vars.ONLY_HOT_TOGGLE + id_suffix)
     else:
-        hot_toggle = InlineKeyboardButton('🌶️ Nur heiße Deals senden',
-                                          callback_data=Vars.ONLY_HOT_TOGGLE + id_suffix)
+        hot_toggle = InlineKeyboardButton('🌶️ Nur heiße Deals senden', callback_data=Vars.ONLY_HOT_TOGGLE + id_suffix)
+
+    if notification.search_mindstar:
+        mindstar_toggle = InlineKeyboardButton(
+            '⭕ Mindstar nicht durchsuchen', callback_data=Vars.SEARCH_MINDSTAR_TOGGLE + id_suffix
+        )
+    else:
+        mindstar_toggle = InlineKeyboardButton(
+            '⭐ Mindstar durchsuchen', callback_data=Vars.SEARCH_MINDSTAR_TOGGLE + id_suffix
+        )
+
 
     keyboard = [
         [
@@ -39,6 +48,7 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
         ],
         [
             hot_toggle,
+            mindstar_toggle
         ],
         [
             InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=Vars.ADD_NOTIFICATION),

@@ -113,7 +113,8 @@ class SQLiteUser(SQLiteTable):
 
 class SQLiteNotifications(SQLiteTable):
     table_name = 'notifications'
-    table_columns = [column.UID, column.USER_ID, column.QUERY, column.MIN_PRICE, column.MAX_PRICE, column.ONLY_HOT]
+    table_columns = [column.UID, column.USER_ID, column.QUERY, column.MIN_PRICE, column.MAX_PRICE, column.ONLY_HOT,
+                     column.SEARCH_MINDSTAR]
 
     @classmethod
     def parse_row(cls, row: Tuple[Union[str, int], ...]) -> NotificationModel:
@@ -123,7 +124,8 @@ class SQLiteNotifications(SQLiteTable):
         notification.query = str(row[cls.table_columns.index(column.QUERY)])
         notification.min_price = int(row[cls.table_columns.index(column.MIN_PRICE)] or 0)
         notification.max_price = int(row[cls.table_columns.index(column.MAX_PRICE)] or 0)
-        notification.search_only_hot = str(row[cls.table_columns.index(column.ONLY_HOT)]) == 'True'
+        notification.search_only_hot = str(row[cls.table_columns.index(column.ONLY_HOT)]) in ['True', '1']
+        notification.search_mindstar = str(row[cls.table_columns.index(column.SEARCH_MINDSTAR)]) in ['True', '1']
 
         return notification
 
@@ -142,12 +144,14 @@ class SQLiteNotifications(SQLiteTable):
             column.MIN_PRICE: notification.min_price,
             column.MAX_PRICE: notification.max_price,
             column.ONLY_HOT: notification.search_only_hot,
+            column.SEARCH_MINDSTAR: notification.search_mindstar,
         }
 
         return self.upsert(update, notification.id)
 
     def get_by_id(self, sqlite_id: int) -> Optional[NotificationModel]:
         row = self.fetch_by_id(sqlite_id)
+
         return self.parse_row(row) if row else None
 
     def get_by_user_id(self, user_id: int) -> List[NotificationModel]:

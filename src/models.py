@@ -74,6 +74,7 @@ class NotificationModel(Model):
         self.__min_price: int = 0
         self.__max_price: int = 0
         self.__search_only_hot: bool = False
+        self.__search_mindstar: bool = True
 
     def __lt__(self, other: NotificationModel) -> bool:
         return self.query.lower() < other.query.lower()
@@ -125,6 +126,14 @@ class NotificationModel(Model):
     @search_only_hot.setter
     def search_only_hot(self, value: bool) -> None:
         self.__search_only_hot = value
+
+    @property
+    def search_mindstar(self) -> bool:
+        return self.__search_mindstar
+
+    @search_mindstar.setter
+    def search_mindstar(self, value: bool) -> None:
+        self.__search_mindstar = value
 
 
 @dataclass

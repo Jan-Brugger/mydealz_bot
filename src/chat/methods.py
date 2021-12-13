@@ -231,6 +231,15 @@ class Methods:
         cls.show_notification(update, context, True)
 
     @classmethod
+    def toggle_search_mindstar(cls, update: Update, context: TCallbackContext) -> None:
+        logging.debug('%s %s', update, context)
+        notification = cls.get_notification(update, context)
+        notification.search_mindstar = not notification.search_mindstar
+        SQLiteNotifications().update(notification.id, columns.SEARCH_MINDSTAR, notification.search_mindstar)
+
+        cls.show_notification(update, context, True)
+
+    @classmethod
     def delete_notification(cls, update: Update, context: TCallbackContext) -> None:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
