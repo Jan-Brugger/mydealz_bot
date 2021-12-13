@@ -25,19 +25,19 @@ class SQLiteClient:
         return self.__c.execute(query, parameters)
 
     def check_if_table_exists(self, table_name: str) -> bool:
-        c = self.execute('SELECT count(name) FROM sqlite_master WHERE type="table" AND name="' + table_name + '"')
+        c = self.execute(f'SELECT count(name) FROM sqlite_master WHERE type="table" AND name="{table_name}"')
         return c.fetchone()[0] == 1  # type: ignore
 
     def create_table(self, table_name: str, fields: List[str]) -> None:
         all_fields_query = ''
         for field in fields:
-            all_fields_query += ' {0} {1},'.format(field, COLUMN_CONFIG[field])
+            all_fields_query += f' {field} {COLUMN_CONFIG[field]},'
 
-        self.execute('CREATE TABLE IF NOT EXISTS ' + table_name + '(' + all_fields_query[:-1] + ');')
+        self.execute(f'CREATE TABLE IF NOT EXISTS {table_name} ({all_fields_query[:-1]});')
 
     def add_column(self, table_name: str, column_name: str, column_definition: str) -> None:
-        self.execute('ALTER TABLE {0} ADD {1} {2}'.format(table_name, column_name, column_definition))
+        self.execute(f'ALTER TABLE {table_name} ADD {column_name} {column_definition}')
 
     def get_all_columns(self, table_name: str) -> List[str]:
-        c = self.execute('SELECT * FROM ' + table_name + ' LIMIT 1')
+        c = self.execute(f'SELECT * FROM {table_name} LIMIT 1')
         return [description[0] for description in c.description]

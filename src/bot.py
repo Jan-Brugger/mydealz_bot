@@ -11,9 +11,9 @@ from telegram.utils.request import Request
 from src.config import Config
 from src.core import Core
 from src.models import DealModel, NotificationModel
-from src.telegram import keyboards, messages
-from src.telegram.constants import Vars
-from src.telegram.methods import Methods
+from src.chat import keyboards, messages
+from src.chat.constants import Vars
+from src.chat.methods import Methods
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class Bot:
 
         add_notification_conversation = ConversationHandler(
             entry_points=[
-                CQHandler(Methods.add_notification_trigger, pattern='^{}$'.format(Vars.ADD_NOTIFICATION))
+                CQHandler(Methods.add_notification_trigger, pattern=fr'^{Vars.ADD_NOTIFICATION}$')
             ],
             states={
                 Vars.ADD_NOTIFICATION: [MsgHandler(Filters.regex(QUERY_PATTERN), Methods.add_notification)],
@@ -47,7 +47,7 @@ class Bot:
 
         update_query_conversation = ConversationHandler(
             entry_points=[
-                CQHandler(Methods.update_query_trigger, pattern=r'^{}.*$'.format(Vars.EDIT_QUERY))
+                CQHandler(Methods.update_query_trigger, pattern=fr'^{Vars.EDIT_QUERY}.*$')
             ],
             states={
                 Vars.EDIT_QUERY: [MsgHandler(Filters.regex(QUERY_PATTERN), Methods.update_query)],
@@ -61,7 +61,7 @@ class Bot:
 
         update_min_price_conversation = ConversationHandler(
             entry_points=[
-                CQHandler(Methods.update_min_price_trigger, pattern=r'^{}.*$'.format(Vars.EDIT_MIN_PRICE))
+                CQHandler(Methods.update_min_price_trigger, pattern=fr'^{Vars.EDIT_MIN_PRICE}.*$')
             ],
             states={
                 Vars.EDIT_MIN_PRICE: [
@@ -78,7 +78,7 @@ class Bot:
 
         update_max_price_conversation = ConversationHandler(
             entry_points=[
-                CQHandler(Methods.update_max_price_trigger, pattern=r'^{}.*$'.format(Vars.EDIT_MAX_PRICE))
+                CQHandler(Methods.update_max_price_trigger, pattern=fr'^{Vars.EDIT_MAX_PRICE}.*$')
             ],
             states={
                 Vars.EDIT_MAX_PRICE: [
@@ -96,16 +96,16 @@ class Bot:
         handlers = [
             CmdHandler('start', Methods.start),
             CmdHandler('help', Methods.help),
-            CQHandler(Methods.home, pattern=r'^{}$'.format(Vars.HOME)),
-            CQHandler(Methods.show_notification, pattern=r'^{}.*$'.format(Vars.EDIT_NOTIFICATION)),
-            CQHandler(Methods.toggle_only_hot, pattern=r'^{}.*$'.format(Vars.ONLY_HOT_TOGGLE)),
-            CQHandler(Methods.delete_notification, pattern=r'^{}.*$'.format(Vars.DELETE_NOTIFICATION)),
+            CQHandler(Methods.home, pattern=fr'^{Vars.HOME}$'),
+            CQHandler(Methods.show_notification, pattern=fr'^{Vars.EDIT_NOTIFICATION}.*$'),
+            CQHandler(Methods.toggle_only_hot, pattern=fr'^{Vars.ONLY_HOT_TOGGLE}.*$'),
+            CQHandler(Methods.delete_notification, pattern=fr'^{Vars.DELETE_NOTIFICATION}.*$'),
             add_notification_conversation,
             update_query_conversation,
             update_min_price_conversation,
             update_max_price_conversation,
-            CQHandler(Methods.add_notification, pattern=r'^{}.*$'.format(Vars.ADD_NOTIFICATION)),
-            CQHandler(Methods.start, pattern=r'^{}$'.format(Vars.CANCEL)),
+            CQHandler(Methods.add_notification, pattern=fr'^{Vars.ADD_NOTIFICATION}.*$'),
+            CQHandler(Methods.start, pattern=fr'^{Vars.CANCEL}$'),
             MsgHandler(Filters.regex(QUERY_PATTERN_LIMITED_CHARS), Methods.add_notification_inconclusive)
         ]
 

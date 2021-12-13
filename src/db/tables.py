@@ -46,21 +46,15 @@ class SQLiteTable(SQLiteClient):
         fields = ','.join(update.keys())
 
         self.execute(
-            'INSERT OR REPLACE INTO `{}`({}) VALUES ({})'.format(
-                self.table_name, fields, ','.join('?' * len(update.values()))
-            ),
+            f'INSERT OR REPLACE INTO `{self.table_name}`({fields}) VALUES ({",".join("?" * len(update.values()))})',
             *update.values()
         )
         return self.commit()
 
     def fetch_all(self, where: str = '') -> List[Tuple[Union[str, int], ...]]:
-        where = ' WHERE {}'.format(where) if where else ''
+        where = f' WHERE {where}' if where else ''
 
-        rows = self.execute('SELECT {fields} FROM {table}{where}'.format(
-            fields=','.join(self.table_columns),
-            table=self.table_name,
-            where=where
-        )).fetchall()
+        rows = self.execute(f'SELECT {",".join(self.table_columns)} FROM {self.table_name}{where}').fetchall()
 
         if not isinstance(rows, list):
             raise Exception('Unexpected result')
@@ -68,28 +62,23 @@ class SQLiteTable(SQLiteClient):
         return rows
 
     def fetch_by_id(self, sqlite_id: int) -> Optional[Tuple[Union[str, int], ...]]:
-        where_query = '{} == {}'.format(column.UID, sqlite_id)
+        where_query = f'{column.UID} == {sqlite_id}'
         rows = self.fetch_all(where_query)
 
         return rows[0] if rows else None
 
     def fetch_by_field(self, field: str, value: Union[str, int]) -> List[Tuple[Union[str, int], ...]]:
-        where_query = '{} == {}'.format(field, value)
+        where_query = f'{field} == {value}'
 
         return self.fetch_all(where_query)
 
     def delete_by_id(self, sqlite_id: Union[str, int]) -> None:
-        self.execute('DELETE FROM {} WHERE {}={}'.format(self.table_name, column.UID, sqlite_id))
+        self.execute(f'DELETE FROM {self.table_name} WHERE {column.UID}={sqlite_id}')
         self.commit()
 
     def update(self, sqlite_id: int, field: str, new_value: Union[str, int]) -> None:
         self.execute(
-            'UPDATE {table} SET {field} = "{value}" WHERE {id_col} = {sqlite_id}'.format(
-                table=self.table_name,
-                field=field,
-                value=new_value,
-                id_col=column.UID,
-                sqlite_id=sqlite_id)
+            f'UPDATE {self.table_name} SET {field} = "{new_value}" WHERE {column.UID} = {sqlite_id}'
         )
         self.commit()
 

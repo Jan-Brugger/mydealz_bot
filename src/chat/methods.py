@@ -12,8 +12,8 @@ from src.db import columns
 from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.exceptions import NotificationNotFoundError
 from src.models import NotificationModel, UserModel
-from src.telegram import keyboards, messages
-from src.telegram.constants import Vars, VARIABLE_PATTERN
+from src.chat import keyboards, messages
+from src.chat.constants import Vars, VARIABLE_PATTERN
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class Methods:
         logging.debug('%s %s', update, context)
         notifications = SQLiteNotifications().get_by_user_id(cls.get_user_id(update))
 
-        message = '{}\n\n{}'.format(add_message, messages.start()) if add_message else messages.start()
+        message = f'{add_message}\n\n{messages.start()}' if add_message else messages.start()
         cls.overwrite_message(update, context, message, keyboards.start(notifications))
 
         # cleanup

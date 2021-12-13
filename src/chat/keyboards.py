@@ -3,7 +3,7 @@ from typing import List
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.models import NotificationModel
-from src.telegram.constants import VARIABLE_PATTERN, Vars
+from src.chat.constants import VARIABLE_PATTERN, Vars
 
 
 def start(notifications: List[NotificationModel]) -> InlineKeyboardMarkup:
@@ -11,7 +11,7 @@ def start(notifications: List[NotificationModel]) -> InlineKeyboardMarkup:
     for notification in sorted(notifications):
         id_suffix = VARIABLE_PATTERN.format(variable=Vars.NOTIFICATION_ID, value=notification.id)
         keyboard.append([
-            InlineKeyboardButton('🔍 {}'.format(notification.query), callback_data=Vars.EDIT_NOTIFICATION + id_suffix)
+            InlineKeyboardButton(f'🔍 {notification.query}', callback_data=Vars.EDIT_NOTIFICATION + id_suffix)
         ])
 
     keyboard.append([InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=Vars.ADD_NOTIFICATION)])

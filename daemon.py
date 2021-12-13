@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import utc
 
@@ -9,6 +11,13 @@ if __name__ == '__main__':
     Core.init()
 
     scheduler = BackgroundScheduler()
-    job = scheduler.add_job(Feed().parse, 'interval', seconds=60, timezone=utc, max_instances=50)
+    job = scheduler.add_job(
+        Feed().parse,
+        'interval',
+        seconds=60,
+        timezone=utc,
+        max_instances=50,
+        next_run_time=datetime.now()
+    )
     scheduler.start()
     Bot().run()

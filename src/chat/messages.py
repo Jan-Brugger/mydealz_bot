@@ -28,59 +28,54 @@ def query_instructions() -> str:
 
 
 def invalid_query() -> str:
-    return 'Der Suchbegriff ist ungültig!\n\n{}'.format(query_instructions())
+    return f'Der Suchbegriff ist ungültig!\n\n{query_instructions()}'
 
 
 def notification_added(notification: NotificationModel) -> str:
-    return 'Benachrichtigung angelegt\n\n{}'.format(notification_overview(notification))
+    return f'Benachrichtigung angelegt\n\n{notification_overview(notification)}'
 
 
 def notification_overview(notification: NotificationModel) -> str:
     search_range = 'Nur heiße Deals' if notification.search_only_hot else 'Alle Deals'
-    return 'Suchbegriff: {query}\n' \
-           'Minimaler Preis: {min_price}\n' \
-           'Maximaler Preis: {max_price}\n' \
-           'Reichweite: {range}'.format(
-                query=notification.query,
-                min_price=str(notification.min_price) + ' €' if notification.min_price else '-',
-                max_price=str(notification.max_price) + ' €' if notification.max_price else '-',
-                range=search_range
-            )
+    return (
+        f'Suchbegriff: {notification.query}\n'
+        f'Minimaler Preis: {str(notification.min_price) + " €" if notification.min_price else "-"}\n'
+        f'Maximaler Preis: {str(notification.max_price) + " €" if notification.max_price else "-"}\n'
+        f'Reichweite: {search_range}'
+    )
 
 
 def query_updated(notification: NotificationModel) -> str:
-    return 'Suchbegriff aktualisiert\n\n{}'.format(notification_overview(notification))
+    return f'Suchbegriff aktualisiert\n\n{notification_overview(notification)}'
 
 
 def price_instructions(price_type: str) -> str:
-    return 'Bitte gebe einen neuen {0}imal-Preis an. ' \
-           '\n/remove um den {0}imal-Preis zu löschen' \
-           '\n/cancel zum Abbrechen'.format(price_type)
+    return (
+        f'Bitte gebe einen neuen {price_type}imal-Preis an.\n'
+        f'/remove um den {price_type}imal-Preis zu löschen\n'
+        '/cancel zum Abbrechen'
+    )
 
 
 def invalid_price(price_type: str) -> str:
-    return 'Der eingegebene Preis ist ungültig!\n\n{}'.format(price_instructions(price_type))
+    return f'Der eingegebene Preis ist ungültig!\n\n{price_instructions(price_type)}'
 
 
 def notification_deleted(notification: NotificationModel) -> str:
-    return 'Benachrichtigung "{}" gelöscht'.format(notification.query)
+    return f'Benachrichtigung "{notification.query}" gelöscht'
 
 
 def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
-    message = 'Neuer Deal für "{query}":\n<a href="{link}">{title}</a>'.format(
-        query=notification.query,
-        link=deal.link,
-        title=deal.title
-    )
+    message = f'Neuer Deal für "{notification.query}":\n<a href="{deal.link}">{deal.title}</a>'
 
     if deal.price:
-        message += '\n Preis: {:.2f} €'.format(deal.price)
+        message += f'\n Preis: {deal.price:.2f} €'
 
     return message
 
 
 def add_notification_inconclusive(text: str) -> str:
-    return 'Möchtest Du eine Benachrichtigung für "{}" erstellen?'.format(text)
+    return f'Möchtest Du eine Benachrichtigung für "{text}" erstellen?'
 
 
 def notification_not_found() -> str:
