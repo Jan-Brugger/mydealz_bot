@@ -1,4 +1,6 @@
+import html
 import logging
+import traceback
 from os import getenv
 
 from telegram import Bot as TelegramBot, ParseMode
@@ -144,7 +146,25 @@ class Bot:
             SQLiteNotifications().delete_by_user_id(notification.user_id)
 
         except (TimedOut, ChatMigrated) as error:
-            logger.error('Some error-handling needed here. %s', error)
+            self.send_error(error)
+
+    def send_error(self, error: Exception) -> None:
+        own_id = getenv('OWN_ID')
+
+        if not own_id:
+            return
+
+        tb_string = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+        message = (
+            f'An exception was raised while handling an update\n'
+            f'<pre>{html.escape(tb_string)}</pre>'
+        )
+
+        self.__BOT.send_message(
+            chat_id=own_id,
+            text=message,
+            parse_mode=ParseMode.HTML,
+        )
 
 
 def run_bot() -> None:

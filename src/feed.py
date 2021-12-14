@@ -115,7 +115,7 @@ class MindStarsFeed(AbstractFeed):
         deal.merchant = 'Mindfactory'
         deal.title = f'[{deal.merchant}] {entry.get("title", "")}'
         deal.description = entry.get('summary', '')
-        deal.price = float(entry.get('_price', 0))
+        deal.price = float(entry.get('_price', '0').replace(',', ''))
         deal.link = entry.get('link', '')
         time = entry.get('published_parsed')
         if isinstance(time, struct_time):
@@ -129,9 +129,14 @@ class MindStarsFeed(AbstractFeed):
 class Feed:
     @classmethod
     def parse(cls) -> None:
-        deals_mydealz_hot = MyDealzHotFeed.get_new_deals()
-        deals_mydealz_all = MyDealzAllFeed.get_new_deals()
-        deals_mindstar = MindStarsFeed.get_new_deals()
+        try:
+            deals_mydealz_hot = MyDealzHotFeed.get_new_deals()
+            deals_mydealz_all = MyDealzAllFeed.get_new_deals()
+            deals_mindstar = MindStarsFeed.get_new_deals()
+        except Exception as error:
+            Bot().send_error(error)
+
+            raise error from None
 
         for notification in SQLiteNotifications().get_all():
             if notification.search_only_hot:
