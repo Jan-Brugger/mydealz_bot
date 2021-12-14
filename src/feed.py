@@ -33,6 +33,8 @@ class AbstractFeed(ABC):
         if timestamp <= cls.get_last_update():
             return
 
+        logging.info('update last-update-timestamp from "%s" to "%s"', cls.get_last_update(), timestamp)
+
         cls._last_update = timestamp
         mode = 'r+' if isfile(cls.last_update_file()) else 'w'
         with open(cls.last_update_file(), mode, encoding='utf-8') as last_update_file:
@@ -58,7 +60,8 @@ class AbstractFeed(ABC):
         deals = []
         for entry in feed['entries']:
             deal = cls.parse_deal(entry)
-            if deal.timestamp > last_update_ts:
+            if deal.title and deal.timestamp > last_update_ts:
+                logging.debug('Added Deal with title "%s"', deal.title)
                 deals.append(deal)
                 latest_ts = max(latest_ts, deal.timestamp)
 
