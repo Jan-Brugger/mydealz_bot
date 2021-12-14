@@ -163,3 +163,7 @@ class SQLiteNotifications(SQLiteTable):
         rows: List[Tuple[Union[str, int], ...]] = self.fetch_all()
 
         return self.parse_rows(rows)
+
+    def delete_by_user_id(self, user_id: int) -> None:
+        self.execute(f'DELETE FROM {self.table_name} WHERE {column.USER_ID}={user_id}')
+        self.commit()

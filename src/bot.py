@@ -13,6 +13,7 @@ from src.chat.constants import Vars
 from src.chat.methods import Methods
 from src.config import Config
 from src.core import Core
+from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.models import DealModel, NotificationModel
 
 logger = logging.getLogger(__name__)
@@ -137,7 +138,12 @@ class Bot:
                 parse_mode=ParseMode.HTML,
                 reply_markup=keyboard
             )
-        except (Unauthorized, TimedOut, ChatMigrated) as error:
+        except Unauthorized:
+            logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)
+            SQLiteUser().delete_by_id(notification.user_id)
+            SQLiteNotifications().delete_by_user_id(notification.user_id)
+
+        except (TimedOut, ChatMigrated) as error:
             logger.error('Some error-handling needed here. %s', error)
 
 
