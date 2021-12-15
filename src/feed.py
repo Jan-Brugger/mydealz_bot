@@ -33,7 +33,7 @@ class AbstractFeed(ABC):
         if timestamp <= cls.get_last_update():
             return
 
-        logging.info('update last-update-timestamp from "%s" to "%s"', cls.get_last_update(), timestamp)
+        logging.debug('update last-update-timestamp from "%s" to "%s"', cls.get_last_update(), timestamp)
 
         cls._last_update = timestamp
         mode = 'r+' if isfile(cls.last_update_file()) else 'w'
@@ -65,7 +65,7 @@ class AbstractFeed(ABC):
                 deals.append(deal)
                 latest_ts = max(latest_ts, deal.timestamp)
 
-        logging.info('Parsed %s, found %s new deals', cls._feed, len(deals))
+        logging.debug('Parsed %s, found %s new deals', cls._feed, len(deals))
 
         cls.set_last_update(latest_ts)
 
@@ -137,6 +137,18 @@ class Feed:
             Bot().send_error(error)
 
             raise error from None
+
+        new_deals_amount = len(deals_mydealz_hot) + len(deals_mydealz_all) + len(deals_mindstar)
+        if new_deals_amount == 0:
+            return
+
+        logging.info(
+            'Found %s new deals (MyDealz-Hot: %s | Mydealz-All: %s | Mindstar: %s)',
+            new_deals_amount,
+            len(deals_mydealz_hot),
+            len(deals_mydealz_all),
+            len(deals_mindstar)
+        )
 
         for notification in SQLiteNotifications().get_all():
             if notification.search_only_hot:
