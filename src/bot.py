@@ -4,7 +4,7 @@ import traceback
 from os import getenv
 
 from telegram import Bot as TelegramBot, ParseMode
-from telegram.error import ChatMigrated, TimedOut, Unauthorized
+from telegram.error import TimedOut, Unauthorized
 from telegram.ext import CallbackQueryHandler as CQHandler, CommandHandler as CmdHandler, \
     ConversationHandler, \
     Filters, MessageHandler as MsgHandler, PicklePersistence, Updater
@@ -129,7 +129,7 @@ class Bot:
         if getenv('ENV') != 'dev':
             updater.idle()
 
-    def send_deal(self, deal: DealModel, notification: NotificationModel) -> None:
+    def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
         message = messages.deal_msg(deal, notification)
         keyboard = keyboards.deal_kb(notification)
 
@@ -145,7 +145,14 @@ class Bot:
             SQLiteUser().delete_by_id(notification.user_id)
             SQLiteNotifications().delete_by_user_id(notification.user_id)
 
-        except (TimedOut, ChatMigrated) as error:
+        except TimedOut as error:
+            if first_try:
+                logging.warning('Sending message timed out, try again.')
+                self.send_deal(deal, notification, False)
+            else:
+                self.send_error(error)
+
+        except Exception as error:  # pylint: disable=broad-except
             self.send_error(error)
 
     def send_error(self, error: Exception) -> None:
