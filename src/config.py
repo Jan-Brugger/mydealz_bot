@@ -1,25 +1,26 @@
 from os import getenv
+from typing import List
 
 from dotenv import load_dotenv
 
 
 class Config:
-    BOT_TOKEN = ''
+    BOT_TOKENS: List[str] = []
     LOG_LEVEL = 'INFO'
     FILE_DIR = 'files/'
     LOG_FILE = 'bot.log'
     CHAT_FILE = 'chat_data'
-    DATABASE = 'sqlite.db'
+    DATABASE = 'sqlite_v2.db'
 
     @classmethod
     def init(cls) -> None:
         load_dotenv()
 
-        token = getenv('BOT_TOKEN')
-        if not token:
+        tokens = getenv('BOT_TOKEN', '').replace(' ', '').split(',')
+        if not tokens:
             raise NotImplementedError('Environment-variable BOT_TOKEN is missing!')
 
-        cls.BOT_TOKEN = token
+        cls.BOT_TOKENS = tokens
         cls.LOG_LEVEL = getenv('LOG_LEVEL') or cls.LOG_LEVEL
         cls.FILE_DIR = (getenv('FILE_DIR') or cls.FILE_DIR).rstrip('/')
         cls.LOG_FILE = f'{cls.FILE_DIR}/{getenv("LOG_FILE") or cls.LOG_FILE}'

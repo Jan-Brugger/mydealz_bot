@@ -1,9 +1,31 @@
 import logging
 import sqlite3
-from typing import Any, List
+from typing import Any, Dict, List
 
 from src.config import Config
-from src.db.columns import COLUMN_CONFIG
+from src.db.constants import Columns, NColumns, Tables, UColumns
+
+_COLUMN_CONFIG = {
+    UColumns.USER_ID: 'INTEGER PRIMARY KEY',
+    UColumns.USERNAME: 'TEXT',
+    UColumns.FIRST_NAME: 'TEXT',
+    UColumns.LAST_NAME: 'TEXT',
+    UColumns.BOT_ID: 'INTEGER NOT NULL',
+    NColumns.NOTIFICATION_ID: 'INTEGER PRIMARY KEY',
+    NColumns.USER_ID: 'INTEGER NOT NULL',
+    NColumns.QUERY: 'TEXT',
+    NColumns.MIN_PRICE: 'INTEGER',
+    NColumns.MAX_PRICE: 'INTEGER',
+    NColumns.ONLY_HOT: 'BOOL',
+    NColumns.SEARCH_MINDSTAR: 'BOOL',
+}
+
+_ADDITIONAL_COLUMN_CONFIG: Dict[Columns, str] = {
+    NColumns.USER_ID: (
+        f'FOREIGN KEY ({NColumns.USER_ID}) REFERENCES {Tables.USERS} ({UColumns.USER_ID}) '
+        f'ON UPDATE CASCADE ON DELETE CASCADE'
+    )
+}
 
 
 class SQLiteClient:
@@ -22,22 +44,30 @@ class SQLiteClient:
 
     def execute(self, query: str, *parameters: Any) -> sqlite3.Cursor:
         logging.debug('sqlite exec: %s', query)
+
         return self.__c.execute(query, parameters)
 
-    def check_if_table_exists(self, table_name: str) -> bool:
+    def check_if_table_exists(self, table_name: Tables) -> bool:
         c = self.execute(f'SELECT count(name) FROM sqlite_master WHERE type="table" AND name="{table_name}"')
+
         return c.fetchone()[0] == 1  # type: ignore
 
-    def create_table(self, table_name: str, fields: List[str]) -> None:
-        all_fields_query = ''
+    def create_table(self, table_name: Tables, fields: List[Columns]) -> None:
+        all_fields_query: List[str] = []
+        additional_column_config: List[str] = []
         for field in fields:
-            all_fields_query += f' {field} {COLUMN_CONFIG[field]},'
+            all_fields_query.append(f'{field} {_COLUMN_CONFIG[field]}')
 
-        self.execute(f'CREATE TABLE IF NOT EXISTS {table_name} ({all_fields_query[:-1]});')
+            if field in _ADDITIONAL_COLUMN_CONFIG:
+                additional_column_config.append(_ADDITIONAL_COLUMN_CONFIG[field])
 
-    def add_column(self, table_name: str, column_name: str, column_definition: str) -> None:
-        self.execute(f'ALTER TABLE {table_name} ADD {column_name} {column_definition}')
+        query = f'{", ".join(all_fields_query)}, {",".join(additional_column_config)}'.rstrip(', ')
+        self.execute(f'CREATE TABLE IF NOT EXISTS {table_name} ({query});')
 
-    def get_all_columns(self, table_name: str) -> List[str]:
+    def add_column(self, table_name: Tables, column: Columns) -> None:
+        self.execute(f'ALTER TABLE {table_name} ADD {column} {_COLUMN_CONFIG[column]}')
+
+    def get_all_columns(self, table_name: Tables) -> List[str]:
         c = self.execute(f'SELECT * FROM {table_name} LIMIT 1')
+
         return [description[0] for description in c.description]

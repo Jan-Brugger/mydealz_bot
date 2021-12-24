@@ -8,12 +8,11 @@ from typing import Any, Dict, Optional
 from telegram import InlineKeyboardMarkup, ParseMode, Update
 from telegram.ext import (CallbackContext, ConversationHandler)
 
-from src.db import columns
+from src.chat import keyboards, messages
+from src.chat.constants import VARIABLE_PATTERN, Vars
 from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.exceptions import NotificationNotFoundError
 from src.models import NotificationModel, UserModel
-from src.chat import keyboards, messages
-from src.chat.constants import Vars, VARIABLE_PATTERN
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,6 @@ TCallbackContext = CallbackContext[Dict[Any, Any], Dict[Any, Any], Dict[Any, Any
 
 # pylint: disable=too-many-public-methods
 class Methods:
-
     @classmethod
     def error_handler(cls, update: Update, context: TCallbackContext) -> None:
         if not context.error:
@@ -63,8 +61,8 @@ class Methods:
         sqlite_user = SQLiteUser()
         user = sqlite_user.get_by_id(cls.get_user_id(update))
         new_user = UserModel().parse_telegram_user(update)
-        if not user or user != new_user:
-            logging.info('added user: %s', new_user.__dict__)
+        if not user or vars(user) != vars(new_user):
+            logging.info('added/updated user: %s', new_user.__dict__)
             sqlite_user.upsert_model(new_user)
 
         notifications = SQLiteNotifications().get_by_user_id(cls.get_user_id(update))
@@ -147,10 +145,11 @@ class Methods:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
         notification.query = cls.get_text(update)
-        SQLiteNotifications().update(notification.id, columns.QUERY, notification.query)
+        SQLiteNotifications().upsert_model(notification)
 
-        cls.send_message(update, context, messages.query_updated(notification),
-                         keyboards.notification_commands(notification))
+        cls.send_message(
+            update, context, messages.query_updated(notification), keyboards.notification_commands(notification)
+        )
 
         return END_CONVERSATION
 
@@ -177,7 +176,7 @@ class Methods:
 
         notification = cls.get_notification(update, context)
         notification.min_price = round(float(price.replace(',', '.')))
-        SQLiteNotifications().update(notification.id, columns.MIN_PRICE, notification.min_price)
+        SQLiteNotifications().upsert_model(notification)
 
         cls.send_message(update, context, messages.query_updated(notification),
                          keyboards.notification_commands(notification))
@@ -207,7 +206,7 @@ class Methods:
 
         notification = cls.get_notification(update, context)
         notification.max_price = round(float(price.replace(',', '.')))
-        SQLiteNotifications().update(notification.id, columns.MAX_PRICE, notification.max_price)
+        SQLiteNotifications().upsert_model(notification)
 
         cls.send_message(update, context, messages.query_updated(notification),
                          keyboards.notification_commands(notification))
@@ -226,7 +225,7 @@ class Methods:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
         notification.search_only_hot = not notification.search_only_hot
-        SQLiteNotifications().update(notification.id, columns.ONLY_HOT, notification.search_only_hot)
+        SQLiteNotifications().upsert_model(notification)
 
         cls.show_notification(update, context, True)
 
@@ -235,7 +234,7 @@ class Methods:
         logging.debug('%s %s', update, context)
         notification = cls.get_notification(update, context)
         notification.search_mindstar = not notification.search_mindstar
-        SQLiteNotifications().update(notification.id, columns.SEARCH_MINDSTAR, notification.search_mindstar)
+        SQLiteNotifications().upsert_model(notification)
 
         cls.show_notification(update, context, True)
 

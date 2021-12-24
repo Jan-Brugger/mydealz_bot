@@ -1,169 +1,163 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from src.db import columns as column
 from src.db.client import SQLiteClient
-from src.db.columns import COLUMN_CONFIG
+from src.db.constants import Columns, NColumns, Tables, UColumns
 from src.models import Model, NotificationModel, UserModel
 
-TypeNotificationsRow = Tuple[int, int, str, int, int]
-TypeUsersRow = Tuple[int, str, str, str]
 
-
-class SQLiteTable(SQLiteClient):
-
+class SQLiteTable(SQLiteClient, ABC):
     @property
     @abstractmethod
-    def table_name(self) -> str:
+    def _table_name(self) -> Tables:
         raise NotImplementedError
 
     @property
     @abstractmethod
-    def table_columns(self) -> List[str]:
+    def _columns(self) -> List[Columns]:
         raise NotImplementedError
 
-    @classmethod
+    @property
     @abstractmethod
-    def parse_row(cls, row: Tuple[Union[str, int], ...]) -> Model:
+    def _base_query(self) -> str:
         raise NotImplementedError
 
-    def init_table(self) -> None:
-        if not self.check_if_table_exists(self.table_name):
-            logging.info('Create table "%s"', self.table_name)
-            self.create_table(self.table_name, self.table_columns)
+    @abstractmethod
+    def _parse_row(self, row: Tuple[Union[str, int], ...]) -> Model:
+        raise NotImplementedError
 
-        existing_column_names = self.get_all_columns(self.table_name)
-        missing_column_names = set(self.table_columns).difference(existing_column_names)
+    def _parse_rows(self, rows: List[Tuple[Union[str, int], ...]]) -> List[Model]:
+        return [self._parse_row(row) for row in rows]
 
-        for missing_column in missing_column_names:
-            logging.info('Add column "%s" to "%s"', missing_column, self.table_name)
-            self.add_column(self.table_name, missing_column, COLUMN_CONFIG[missing_column])
-
-    def upsert(self, update: Dict[str, Any], sqlite_id: int = 0) -> int:
+    def _upsert(self, update: Dict[str, Any], sqlite_id: int = 0) -> int:
         if sqlite_id:
-            update.update({column.UID: sqlite_id})
+            update.update({'ROWID': sqlite_id})
+
         fields = ','.join(update.keys())
+        values = [int(v) if isinstance(v, bool) else v for v in update.values()]
 
         self.execute(
-            f'INSERT OR REPLACE INTO `{self.table_name}`({fields}) VALUES ({",".join("?" * len(update.values()))})',
-            *update.values()
+            f'INSERT OR REPLACE INTO `{self._table_name}`({fields}) VALUES ({",".join("?" * len(values))})', *values
         )
+
         return self.commit()
 
-    def fetch_all(self, where: str = '') -> List[Tuple[Union[str, int], ...]]:
-        where = f' WHERE {where}' if where else ''
+    def _fetch_all(self, where: str = '') -> List[Model]:
+        query = self._base_query
+        if where:
+            query += f' WHERE {where}'
 
-        rows = self.execute(f'SELECT {",".join(self.table_columns)} FROM {self.table_name}{where}').fetchall()
+        rows = self.execute(query).fetchall()
 
         if not isinstance(rows, list):
             raise Exception('Unexpected result')
 
-        return rows
+        return self._parse_rows(rows)
 
-    def fetch_by_id(self, sqlite_id: int) -> Optional[Tuple[Union[str, int], ...]]:
-        where_query = f'{column.UID} == {sqlite_id}'
-        rows = self.fetch_all(where_query)
+    def _fetch_by_field(self, field: Columns, value: Union[str, int]) -> List[Model]:
+        return self._fetch_all(f'{self._table_name}.{field} == {value}')
+
+    def _fetch_by_id(self, sqlite_id: int) -> Optional[Model]:
+        where_query = f'{self._table_name}.ROWID == {sqlite_id}'
+        rows = self._fetch_all(where_query)
 
         return rows[0] if rows else None
 
-    def fetch_by_field(self, field: str, value: Union[str, int]) -> List[Tuple[Union[str, int], ...]]:
-        where_query = f'{field} == {value}'
-
-        return self.fetch_all(where_query)
-
     def delete_by_id(self, sqlite_id: Union[str, int]) -> None:
-        self.execute(f'DELETE FROM {self.table_name} WHERE {column.UID}={sqlite_id}')
+        self.execute('PRAGMA foreign_keys=ON')
+        self.execute(f'DELETE FROM {self._table_name} WHERE {self._table_name}.ROWID == {sqlite_id}')
         self.commit()
 
-    def update(self, sqlite_id: int, field: str, new_value: Union[str, int]) -> None:
-        self.execute(
-            f'UPDATE {self.table_name} SET {field} = "{new_value}" WHERE {column.UID} = {sqlite_id}'
-        )
-        self.commit()
+    def init_table(self) -> None:
+        if not self.check_if_table_exists(self._table_name):
+            logging.info('Create table "%s"', self._table_name)
+            self.create_table(self._table_name, self._columns)
+
+        existing_column_names = self.get_all_columns(self._table_name)
+        for column in self._columns:
+            if column in existing_column_names:
+                continue
+
+            logging.info('Add column "%s" to "%s"', column, self._table_name)
+            self.add_column(self._table_name, column)
 
 
 class SQLiteUser(SQLiteTable):
-    table_name = 'users'
-    table_columns = [column.UID, column.USERNAME, column.FIRST_NAME, column.LAST_NAME]
+    _table_name = Tables.USERS
+    _Columns_to_fetch = [UColumns.USER_ID, UColumns.USERNAME, UColumns.FIRST_NAME, UColumns.LAST_NAME, UColumns.BOT_ID]
+    _base_query = f'SELECT {",".join(_Columns_to_fetch)} FROM {_table_name}'
+    _columns = [col for col in UColumns]  # pylint: disable=unnecessary-comprehension
 
-    @classmethod
-    def parse_row(cls, row: Tuple[Union[str, int], ...]) -> UserModel:
+    def _parse_row(self, row: Tuple[Union[str, int], ...]) -> UserModel:
         user = UserModel()
-        user.id = int(row[cls.table_columns.index(column.UID)])
-        user.username = str(row[cls.table_columns.index(column.USERNAME)])
-        user.first_name = str(row[cls.table_columns.index(column.FIRST_NAME)])
-        user.last_name = str(row[cls.table_columns.index(column.LAST_NAME)])
+        user.id = int(row[self._Columns_to_fetch.index(UColumns.USER_ID)])
+        user.username = str(row[self._Columns_to_fetch.index(UColumns.USERNAME)])
+        user.first_name = str(row[self._Columns_to_fetch.index(UColumns.FIRST_NAME)])
+        user.last_name = str(row[self._Columns_to_fetch.index(UColumns.LAST_NAME)])
+        user.bot_id = int(row[self._Columns_to_fetch.index(UColumns.BOT_ID)])
 
         return user
 
     def upsert_model(self, user: UserModel) -> None:
-        update: Dict[str, str] = {
-            column.USERNAME: user.username,
-            column.FIRST_NAME: user.first_name,
-            column.LAST_NAME: user.last_name
+        update: Dict[str, Union[str, int]] = {
+            UColumns.USER_ID: user.id,
+            UColumns.USERNAME: user.username,
+            UColumns.FIRST_NAME: user.first_name,
+            UColumns.LAST_NAME: user.last_name,
+            UColumns.BOT_ID: user.bot_id
         }
+        self._upsert(update)
 
-        self.upsert(update, user.id)
+    def get_by_id(self, user_id: int) -> Optional[UserModel]:
+        return self._fetch_by_id(user_id)  # type: ignore
 
-    def get_by_id(self, sqlite_id: int) -> Optional[UserModel]:
-        row = self.fetch_by_id(sqlite_id)
-        return self.parse_row(row) if row else None
+    def get_bot_id(self, user_id: int) -> int:
+        user = self.get_by_id(user_id)
+
+        return user.bot_id if user else 0
 
 
 class SQLiteNotifications(SQLiteTable):
-    table_name = 'notifications'
-    table_columns = [column.UID, column.USER_ID, column.QUERY, column.MIN_PRICE, column.MAX_PRICE, column.ONLY_HOT,
-                     column.SEARCH_MINDSTAR]
+    _table_name = Tables.NOTIFICATIONS
+    _Columns_to_fetch = [NColumns.NOTIFICATION_ID, NColumns.QUERY, NColumns.MIN_PRICE, NColumns.MAX_PRICE,
+                         NColumns.ONLY_HOT, NColumns.SEARCH_MINDSTAR, UColumns.BOT_ID, NColumns.USER_ID]
+    _base_query = (
+        f'SELECT {",".join(_Columns_to_fetch)} FROM {_table_name} '
+        f'INNER JOIN {Tables.USERS} ON {Tables.USERS}.{UColumns.USER_ID}={Tables.NOTIFICATIONS}.{NColumns.USER_ID}'
+    )
+    _columns = [col for col in NColumns]  # pylint: disable=unnecessary-comprehension
 
-    @classmethod
-    def parse_row(cls, row: Tuple[Union[str, int], ...]) -> NotificationModel:
+    def _parse_row(self, row: Tuple[Union[str, int], ...]) -> NotificationModel:
         notification = NotificationModel()
-        notification.id = int(row[cls.table_columns.index(column.UID)])
-        notification.user_id = int(row[cls.table_columns.index(column.USER_ID)])
-        notification.query = str(row[cls.table_columns.index(column.QUERY)])
-        notification.min_price = int(row[cls.table_columns.index(column.MIN_PRICE)] or 0)
-        notification.max_price = int(row[cls.table_columns.index(column.MAX_PRICE)] or 0)
-        notification.search_only_hot = str(row[cls.table_columns.index(column.ONLY_HOT)]) in ['True', '1']
-        notification.search_mindstar = str(row[cls.table_columns.index(column.SEARCH_MINDSTAR)]) in ['True', '1']
+        notification.id = int(row[self._Columns_to_fetch.index(NColumns.NOTIFICATION_ID)])
+        notification.user_id = int(row[self._Columns_to_fetch.index(NColumns.USER_ID)])
+        notification.query = str(row[self._Columns_to_fetch.index(NColumns.QUERY)])
+        notification.min_price = int(row[self._Columns_to_fetch.index(NColumns.MIN_PRICE)] or 0)
+        notification.max_price = int(row[self._Columns_to_fetch.index(NColumns.MAX_PRICE)] or 0)
+        notification.search_only_hot = str(row[self._Columns_to_fetch.index(NColumns.ONLY_HOT)]) in ['True', '1']
+        notification.search_mindstar = str(row[self._Columns_to_fetch.index(NColumns.SEARCH_MINDSTAR)]) in ['True', '1']
+        notification.bot_id = int(row[self._Columns_to_fetch.index(UColumns.BOT_ID)] or 0)
 
         return notification
 
-    @classmethod
-    def parse_rows(cls, rows: List[Tuple[Union[str, int], ...]]) -> List[NotificationModel]:
-        result = []
-        for row in rows:
-            result.append(cls.parse_row(row))
-
-        return result
-
     def upsert_model(self, notification: NotificationModel) -> int:
         update: Dict[str, Union[str, int, bool]] = {
-            column.USER_ID: notification.user_id,
-            column.QUERY: notification.query,
-            column.MIN_PRICE: notification.min_price,
-            column.MAX_PRICE: notification.max_price,
-            column.ONLY_HOT: notification.search_only_hot,
-            column.SEARCH_MINDSTAR: notification.search_mindstar,
+            NColumns.USER_ID: notification.user_id,
+            NColumns.QUERY: notification.query,
+            NColumns.MIN_PRICE: notification.min_price,
+            NColumns.MAX_PRICE: notification.max_price,
+            NColumns.ONLY_HOT: notification.search_only_hot,
+            NColumns.SEARCH_MINDSTAR: notification.search_mindstar,
         }
 
-        return self.upsert(update, notification.id)
-
-    def get_by_id(self, sqlite_id: int) -> Optional[NotificationModel]:
-        row = self.fetch_by_id(sqlite_id)
-
-        return self.parse_row(row) if row else None
-
-    def get_by_user_id(self, user_id: int) -> List[NotificationModel]:
-        rows = self.fetch_by_field(column.USER_ID, user_id)
-
-        return self.parse_rows(rows)
+        return self._upsert(update, notification.id)
 
     def get_all(self) -> List[NotificationModel]:
-        rows: List[Tuple[Union[str, int], ...]] = self.fetch_all()
+        return self._fetch_all()  # type: ignore
 
-        return self.parse_rows(rows)
+    def get_by_id(self, sqlite_id: int) -> Optional[NotificationModel]:
+        return self._fetch_by_id(sqlite_id)  # type: ignore
 
-    def delete_by_user_id(self, user_id: int) -> None:
-        self.execute(f'DELETE FROM {self.table_name} WHERE {column.USER_ID}={user_id}')
-        self.commit()
+    def get_by_user_id(self, user_id: int) -> List[NotificationModel]:
+        return self._fetch_by_field(NColumns.USER_ID, user_id)  # type: ignore

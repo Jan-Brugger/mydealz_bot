@@ -17,7 +17,7 @@ This is a Docker container to run a telegram bot that tracks mydealz.de for new 
 | --restart=always                             | Start the container when Docker starts (i.e. on boot/reboot).                                                             |
 | -v /opt/mydealz_bot/files:/usr/src/app/files | Mount directory /usr/src/app/files from host machine. This directory contains the database, persistent chat-data and logs |
 | -v /etc/localtime:/etc/localtime:ro          | Use correct timezone from docker-host                                                                                     |
-| --env BOT_TOKEN=<<YOUR_BOT_TOKEN>>           | Your telegram-bot token. You can create one with @BotFather                                                               |
+| --env BOT_TOKEN=<<YOUR_BOT_TOKEN>>           | Comma-seperated list of your telegram-bot tokens. You can create one with @BotFather                                      |
 | --env OWN_ID=<<YOUR_TELEGRAM_ID>>            | Your telegram-user-id. It's used to forward error-messages
 
 ### docker-compose.yaml

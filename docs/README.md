@@ -56,11 +56,11 @@ Build multi-platform-images with buildx:
 
 Run Docker container:
 
-    docker run --env BOT_TOKEN=YOUR-TOKEN --name mydealz_bot mydealz_bot
+    docker run --env BOT_TOKEN=<<YOUR_BOT_TOKEN>> --name mydealz_bot mydealz_bot
 
 Run Docker container in background:
 
-    docker run --env BOT_TOKEN=YOUR-TOKEN -dit --restart unless-stopped --name mydealz_bot mydealz_bot
+    docker run --env BOT_TOKEN=<<YOUR_BOT_TOKEN>> -dit --restart unless-stopped --name mydealz_bot mydealz_bot
 
 Stop Docker container:
 

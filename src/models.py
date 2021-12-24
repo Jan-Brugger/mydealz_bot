@@ -18,6 +18,7 @@ class UserModel(Model):
         self.__username: str = ''
         self.__first_name: str = ''
         self.__last_name: str = ''
+        self.__bot_id: int = 0
 
     @property
     def id(self) -> int:
@@ -51,12 +52,21 @@ class UserModel(Model):
     def last_name(self, value: str) -> None:
         self.__last_name = value
 
+    @property
+    def bot_id(self) -> int:
+        return self.__bot_id
+
+    @bot_id.setter
+    def bot_id(self, value: int) -> None:
+        self.__bot_id = value
+
     def parse_telegram_user(self, update: Update) -> UserModel:
         if not update.effective_chat:
             raise Exception('Chat is missing for update', update)
 
         self.id = update.effective_chat.id
         self.username = update.effective_chat.title or update.effective_chat.username or ''
+        self.bot_id = update.effective_chat.bot.id
 
         if update.effective_user:
             self.first_name = update.effective_user.first_name or ''
@@ -75,6 +85,7 @@ class NotificationModel(Model):
         self.__max_price: int = 0
         self.__search_only_hot: bool = False
         self.__search_mindstar: bool = True
+        self.__bot_id: int = 0
 
     def __lt__(self, other: NotificationModel) -> bool:
         return self.query.lower() < other.query.lower()
@@ -134,6 +145,14 @@ class NotificationModel(Model):
     @search_mindstar.setter
     def search_mindstar(self, value: bool) -> None:
         self.__search_mindstar = value
+
+    @property
+    def bot_id(self) -> int:
+        return self.__bot_id
+
+    @bot_id.setter
+    def bot_id(self, value: int) -> None:
+        self.__bot_id = value
 
 
 @dataclass

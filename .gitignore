@@ -8,6 +8,7 @@ __pycache__/
 
 # dev IDE
 .idea
+.DS_Store
 
 # virtual environment dependencies
 venv

@@ -5,8 +5,7 @@ from os import getenv
 
 from telegram import Bot as TelegramBot, ParseMode
 from telegram.error import TimedOut, Unauthorized
-from telegram.ext import CallbackQueryHandler as CQHandler, CommandHandler as CmdHandler, \
-    ConversationHandler, \
+from telegram.ext import CallbackQueryHandler as CQHandler, CommandHandler as CmdHandler, ConversationHandler, \
     Filters, MessageHandler as MsgHandler, PicklePersistence, Updater
 from telegram.utils.request import Request
 
@@ -15,7 +14,7 @@ from src.chat.constants import Vars
 from src.chat.methods import Methods
 from src.config import Config
 from src.core import Core
-from src.db.tables import SQLiteNotifications, SQLiteUser
+from src.db.tables import SQLiteUser
 from src.models import DealModel, NotificationModel
 
 logger = logging.getLogger(__name__)
@@ -27,12 +26,20 @@ PRICE_PATTERN = r'^\d+([,\.]\d{1,2})?$'
 
 class Bot:
     def __init__(self) -> None:
-        self.__BOT = TelegramBot(Config.BOT_TOKEN, request=Request(con_pool_size=8))
+        tokens = Config.BOT_TOKENS
+        bots = {}
+        for token in tokens:
+            bot = TelegramBot(token, request=Request(con_pool_size=8))
+            bots[bot.id] = bot
+
+        self.__BOTS = bots
 
     def run(self) -> None:
         """Start the bot."""
         persistence = PicklePersistence(filename=Config.CHAT_FILE)
-        updater = Updater(bot=self.__BOT, persistence=persistence, use_context=True)
+        updaters = []
+        for bot in self.__BOTS.values():
+            updaters.append(Updater(bot=bot, persistence=persistence, use_context=True))
 
         add_notification_conversation = ConversationHandler(
             entry_points=[
@@ -112,29 +119,29 @@ class Bot:
             CQHandler(Methods.start, pattern=fr'^{Vars.CANCEL}$'),
             MsgHandler(Filters.regex(QUERY_PATTERN_LIMITED_CHARS), Methods.add_notification_inconclusive)
         ]
+        for updater in updaters:
 
-        dispatcher = updater.dispatcher  # type:ignore
+            # add handlers
+            for handler in handlers:
+                updater.dispatcher.add_handler(handler)  # type: ignore
 
-        # add handlers
-        for handler in handlers:
-            dispatcher.add_handler(handler)
+            # log errors
+            updater.dispatcher.add_error_handler(Methods.error_handler)  # type: ignore
 
-        # log errors
-        dispatcher.add_error_handler(Methods.error_handler)
+            # start bot
+            updater.start_polling()
 
-        # start bot
-        updater.start_polling()
-
-        # gracefully shutdown
-        if getenv('ENV') != 'dev':
-            updater.idle()
+            # gracefully shutdown
+            if getenv('ENV') != 'dev':
+                updater.idle()
 
     def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
         message = messages.deal_msg(deal, notification)
         keyboard = keyboards.deal_kb(notification)
+        bot = self.__BOTS.get(notification.bot_id, next(iter(self.__BOTS.values())))
 
         try:
-            self.__BOT.send_message(
+            bot.send_message(
                 chat_id=notification.user_id,
                 text=message,
                 parse_mode=ParseMode.HTML,
@@ -143,7 +150,6 @@ class Bot:
         except Unauthorized:
             logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)
             SQLiteUser().delete_by_id(notification.user_id)
-            SQLiteNotifications().delete_by_user_id(notification.user_id)
 
         except TimedOut as error:
             if first_try:
@@ -166,8 +172,9 @@ class Bot:
             f'An exception was raised while handling an update\n'
             f'<pre>{html.escape(tb_string)}</pre>'
         )
-
-        self.__BOT.send_message(
+        bot_id = SQLiteUser().get_bot_id(int(own_id))
+        bot = self.__BOTS.get(bot_id, next(iter(self.__BOTS.values())))
+        bot.send_message(
             chat_id=own_id,
             text=message,
             parse_mode=ParseMode.HTML,
