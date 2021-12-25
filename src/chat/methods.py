@@ -344,7 +344,7 @@ class Methods:
             return ''
 
         start += len(variable_pattern)
-        end = cb_data.find('!', start) if cb_data.find('!', start) != -1 else len(cb_data)
+        end = cb_data.find('!!', start) if cb_data.find('!!', start) != -1 else len(cb_data)
 
         return cb_data[start: end]
 

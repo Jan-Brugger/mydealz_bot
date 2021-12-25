@@ -173,9 +173,21 @@ class Feed:
                 continue
 
             logging.debug('search for query (%s) in title (%s)', notification.query, deal.title)
-            for query in notification.query.split(','):
+            for comma_separated_query in notification.query.lower().split(','):
                 logging.debug('')
-                if all(x.lower().strip() in deal.title.lower() for x in query.split('&')):
+                and_seperated_query = comma_separated_query.split('&')
+
+                search_for = []
+                exclude = []
+                for query in and_seperated_query:
+                    query = query.strip()
+                    if query.startswith('!'):
+                        exclude.append(query.lstrip('! '))
+                    else:
+                        search_for.append(query)
+
+                if all(x in deal.title.lower() for x in search_for) \
+                        and not any(x in deal.title.lower() for x in exclude):
                     Bot().send_deal(deal, notification)
                     logging.info('searched query (%s) found in title (%s) - send deal', notification.query, deal.title)
 
