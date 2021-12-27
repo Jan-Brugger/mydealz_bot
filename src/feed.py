@@ -1,9 +1,12 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
+from asyncio import create_task
 from os.path import isfile
 from time import mktime, struct_time
-from typing import List
+from typing import List, Type
 
+import requests
 from feedparser import FeedParserDict, parse
 
 from src.bot import Bot
@@ -52,8 +55,8 @@ class AbstractFeed(ABC):
         pass
 
     @classmethod
-    def get_new_deals(cls) -> List[DealModel]:
-        feed = parse(cls._feed)
+    def parse_feed(cls, feed_content: bytes) -> List[DealModel]:
+        feed = parse(feed_content)
         last_update_ts = cls.get_last_update()
         latest_ts = 0.0
 
@@ -71,8 +74,26 @@ class AbstractFeed(ABC):
 
         return deals
 
+    @classmethod
+    async def get_new_deals(cls) -> List[DealModel]:
+        try:
+            response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=10)
 
-class MyDealzFeed:
+            return cls.parse_feed(response.content)
+
+        except Exception as error:  # pylint: disable=broad-except
+            logging.exception(error)
+            Bot().send_error(error)
+
+        return []
+
+    @classmethod
+    @abstractmethod
+    def consider_deal(cls, notification: NotificationModel) -> bool:
+        pass
+
+
+class MyDealzFeed(ABC):
     @classmethod
     def parse_deal(cls, entry: FeedParserDict) -> DealModel:
         deal = DealModel()
@@ -99,10 +120,18 @@ class MyDealzAllFeed(MyDealzFeed, AbstractFeed):
     _last_update = 0.0
     _feed = 'https://www.mydealz.de/rss/alle'
 
+    @classmethod
+    def consider_deal(cls, notification: NotificationModel) -> bool:
+        return not notification.search_only_hot
+
 
 class MyDealzHotFeed(MyDealzFeed, AbstractFeed):
     _last_update = 0.0
-    _feed = 'https://www.mydealz.de/rss/hot'
+    _feed = 'https://www.mydealz.de/rss/hot'  #
+
+    @classmethod
+    def consider_deal(cls, notification: NotificationModel) -> bool:
+        return notification.search_only_hot
 
 
 class MindStarsFeed(AbstractFeed):
@@ -125,39 +154,35 @@ class MindStarsFeed(AbstractFeed):
 
         return deal
 
+    @classmethod
+    def consider_deal(cls, notification: NotificationModel) -> bool:
+        return notification.search_mindstar
+
 
 class Feed:
     @classmethod
-    def parse(cls) -> None:
-        try:
-            deals_mydealz_hot = MyDealzHotFeed.get_new_deals()
-            deals_mydealz_all = MyDealzAllFeed.get_new_deals()
-            deals_mindstar = MindStarsFeed.get_new_deals()
-        except Exception as error:
-            Bot().send_error(error)
+    async def parse(cls) -> None:
+        feeds: List[Type[AbstractFeed]] = AbstractFeed.__subclasses__()
 
-            raise error from None
+        get_new_deal_tasks = []
+        for feed in feeds:
+            get_new_deal_tasks.append(create_task(feed.get_new_deals()))
 
-        new_deals_amount = len(deals_mydealz_hot) + len(deals_mydealz_all) + len(deals_mindstar)
+        deals_list = await asyncio.gather(*get_new_deal_tasks)
+
+        new_deals_amount = sum([len(deals) for deals in deals_list])
         if new_deals_amount == 0:
             return
 
         logging.info(
-            'Found %s new deals (MyDealz-Hot: %s | Mydealz-All: %s | Mindstar: %s)',
-            new_deals_amount,
-            len(deals_mydealz_hot),
-            len(deals_mydealz_all),
-            len(deals_mindstar)
+            'Found %s new deals (%s)', new_deals_amount,
+            ' | '.join([f'{feeds[key].__name__}: {len(deals)}' for key, deals in enumerate(deals_list)])
         )
 
         for notification in SQLiteNotifications().get_all():
-            if notification.search_only_hot:
-                cls.search_for_matching_deals(notification, deals_mydealz_hot)
-            else:
-                cls.search_for_matching_deals(notification, deals_mydealz_all)
-
-            if notification.search_mindstar:
-                cls.search_for_matching_deals(notification, deals_mindstar)
+            for key, deals in enumerate(deals_list):
+                if feeds[key].consider_deal(notification):
+                    cls.search_for_matching_deals(notification, deals)
 
     @classmethod
     def search_for_matching_deals(cls, notification: NotificationModel, deals: List[DealModel]) -> None:
@@ -196,4 +221,4 @@ class Feed:
 
 if __name__ == '__main__':
     Core.init()
-    Feed().parse()
+    asyncio.run(Feed().parse())

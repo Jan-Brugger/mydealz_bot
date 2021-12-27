@@ -1,6 +1,6 @@
-import time
+import asyncio
 
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import utc
 
 from src.bot import Bot
@@ -10,7 +10,7 @@ from src.feed import Feed
 if __name__ == '__main__':
     Core.init()
 
-    scheduler = BackgroundScheduler()
+    scheduler = AsyncIOScheduler()
     job = scheduler.add_job(
         Feed.parse,
         'interval',
@@ -22,8 +22,6 @@ if __name__ == '__main__':
     Bot().run()
 
     try:
-        # Keep thread alive
-        while True:
-            time.sleep(2)
+        asyncio.get_event_loop().run_forever()
     except (KeyboardInterrupt, SystemExit):
-        scheduler.shutdown()
+        pass
