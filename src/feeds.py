@@ -73,7 +73,7 @@ class AbstractFeed(ABC):
     @classmethod
     async def get_new_deals(cls) -> List[DealModel]:
         try:
-            response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=10)
+            response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=20)
 
             return cls.parse_feed(response.content)
 
