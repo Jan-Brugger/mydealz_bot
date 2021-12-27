@@ -5,14 +5,14 @@ from pytz import utc
 
 from src.bot import Bot
 from src.core import Core
-from src.feed import Feed
+from src.parser import Parser
 
 if __name__ == '__main__':
     Core.init()
 
     scheduler = AsyncIOScheduler()
     job = scheduler.add_job(
-        Feed.parse,
+        Parser.parse,
         'interval',
         seconds=60,
         timezone=utc,
