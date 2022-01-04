@@ -73,9 +73,12 @@ class AbstractFeed(ABC):
     @classmethod
     async def get_new_deals(cls) -> List[DealModel]:
         try:
-            response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=20)
+            response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=30)
 
             return cls.parse_feed(response.content)
+
+        except TimeoutError:
+            logging.error('Fetching %s timed out', cls._feed)
 
         except Exception as error:  # pylint: disable=broad-except
             logging.exception(error)
