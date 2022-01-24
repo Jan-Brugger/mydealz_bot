@@ -7,6 +7,7 @@ from typing import List
 import requests
 from feedparser import FeedParserDict, parse
 from requests import Timeout
+from urllib3.exceptions import NewConnectionError
 
 from src.bot import Bot
 from src.config import Config
@@ -78,7 +79,7 @@ class AbstractFeed(ABC):
 
             return cls.parse_feed(response.content)
 
-        except Timeout:
+        except (Timeout, NewConnectionError):
             logging.error('Fetching %s timed out', cls._feed)
 
         except Exception as error:  # pylint: disable=broad-except
