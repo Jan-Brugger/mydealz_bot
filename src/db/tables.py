@@ -1,12 +1,7 @@
 import logging
-import sqlite3
 from abc import ABC, abstractmethod
-from os import path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from telegram import Bot as TelegramBot
-
-from src.config import Config
 from src.db.client import SQLiteClient
 from src.db.constants import Columns, NColumns, Tables, UColumns
 from src.models import Model, NotificationModel, UserModel
@@ -79,10 +74,6 @@ class SQLiteTable(SQLiteClient, ABC):
             logging.info('Create table "%s"', self._table_name)
             self.create_table(self._table_name, self._columns)
 
-            # TODO REMOVE SOON pylint: disable=fixme
-            if path.isfile(f'{Config.FILE_DIR}/sqlite.db'):
-                self.migrate_old_db()
-
         existing_column_names = self.get_all_columns(self._table_name)
         for column in self._columns:
             if column in existing_column_names:
@@ -90,10 +81,6 @@ class SQLiteTable(SQLiteClient, ABC):
 
             logging.info('Add column "%s" to "%s"', column, self._table_name)
             self.add_column(self._table_name, column)
-
-    # TODO REMOVE SOON pylint: disable=fixme
-    def migrate_old_db(self) -> None:
-        raise NotImplementedError
 
 
 class SQLiteUser(SQLiteTable):
@@ -129,21 +116,6 @@ class SQLiteUser(SQLiteTable):
         user = self.get_by_id(user_id)
 
         return user.bot_id if user else 0
-
-    # TODO REMOVE SOON pylint: disable=fixme
-    def migrate_old_db(self) -> None:
-        rows = sqlite3.connect(f'{Config.FILE_DIR}/sqlite.db').cursor() \
-            .execute('SELECT uid,username,first_name,last_name FROM users').fetchall()
-        bot_id = int(TelegramBot(Config.BOT_TOKENS[0]).id)
-        for row in rows:
-            user = UserModel()
-            user.id = int(row[0])
-            user.username = row[1]
-            user.first_name = row[2]
-            user.last_name = row[3]
-            user.bot_id = bot_id
-
-            self.upsert_model(user)
 
 
 class SQLiteNotifications(SQLiteTable):
@@ -189,21 +161,3 @@ class SQLiteNotifications(SQLiteTable):
 
     def get_by_user_id(self, user_id: int) -> List[NotificationModel]:
         return self._fetch_by_field(NColumns.USER_ID, user_id)  # type: ignore
-
-    # TODO REMOVE SOON pylint: disable=fixme
-    def migrate_old_db(self) -> None:
-        rows = sqlite3.connect(f'{Config.FILE_DIR}/sqlite.db').cursor() \
-            .execute('SELECT uid,user_id,query,min_price,max_price,hot_only,search_mindstar FROM notifications') \
-            .fetchall()
-
-        for row in rows:
-            notification = NotificationModel()
-            notification.id = int(row[0])
-            notification.user_id = int(row[1])
-            notification.query = str(row[2])
-            notification.min_price = int(row[3] or 0)
-            notification.max_price = int(row[4] or 0)
-            notification.search_only_hot = str(row[5]) in ['True', '1']
-            notification.search_mindstar = str(row[6]) in ['True', '1']
-
-            self.upsert_model(notification)
