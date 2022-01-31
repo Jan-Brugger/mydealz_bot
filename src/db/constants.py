@@ -15,7 +15,6 @@ class UColumns(Columns):
     USERNAME = 'username'
     FIRST_NAME = 'first_name'
     LAST_NAME = 'last_name'
-    BOT_ID = 'bot_id'
 
 
 class NColumns(Columns):

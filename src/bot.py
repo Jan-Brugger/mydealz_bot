@@ -26,20 +26,12 @@ PRICE_PATTERN = r'^\d+([,\.]\d{1,2})?$'
 
 class Bot:
     def __init__(self) -> None:
-        tokens = Config.BOT_TOKENS
-        bots = {}
-        for token in tokens:
-            bot = TelegramBot(token, request=Request(con_pool_size=8))
-            bots[bot.id] = bot
-
-        self.__BOTS = bots
+        self.__BOT = TelegramBot(Config.BOT_TOKEN, request=Request(con_pool_size=8))
 
     def run(self) -> None:
         """Start the bot."""
         persistence = PicklePersistence(filename=Config.CHAT_FILE)
-        updaters = []
-        for bot in self.__BOTS.values():
-            updaters.append(Updater(bot=bot, persistence=persistence, use_context=True))
+        updater = Updater(bot=self.__BOT, persistence=persistence, use_context=True)
 
         add_notification_conversation = ConversationHandler(
             entry_points=[
@@ -119,29 +111,29 @@ class Bot:
             CQHandler(Methods.start, pattern=fr'^{Vars.CANCEL}$'),
             MsgHandler(Filters.regex(QUERY_PATTERN_LIMITED_CHARS), Methods.add_notification_inconclusive)
         ]
-        for updater in updaters:
 
-            # add handlers
-            for handler in handlers:
-                updater.dispatcher.add_handler(handler)  # type: ignore
+        dispatcher = updater.dispatcher  # type:ignore
 
-            # log errors
-            updater.dispatcher.add_error_handler(Methods.error_handler)  # type: ignore
+        # add handlers
+        for handler in handlers:
+            dispatcher.add_handler(handler)
 
-            # start bot
-            updater.start_polling()
+        # log errors
+        dispatcher.add_error_handler(Methods.error_handler)
 
-            # gracefully shutdown
-            if getenv('ENV') != 'dev':
-                updater.idle()
+        # start bot
+        updater.start_polling()
+
+        # gracefully shutdown
+        if getenv('ENV') != 'dev':
+            updater.idle()
 
     def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
         message = messages.deal_msg(deal, notification)
         keyboard = keyboards.deal_kb(notification)
-        bot = self.__BOTS.get(notification.bot_id, next(iter(self.__BOTS.values())))
 
         try:
-            bot.send_message(
+            self.__BOT.send_message(
                 chat_id=notification.user_id,
                 text=message,
                 parse_mode=ParseMode.HTML,
@@ -172,9 +164,8 @@ class Bot:
             f'An exception was raised while handling an update\n'
             f'<pre>{html.escape(tb_string)}</pre>'
         )
-        bot_id = SQLiteUser().get_bot_id(int(own_id))
-        bot = self.__BOTS.get(bot_id, next(iter(self.__BOTS.values())))
-        bot.send_message(
+
+        self.__BOT.send_message(
             chat_id=own_id,
             text=message,
             parse_mode=ParseMode.HTML,

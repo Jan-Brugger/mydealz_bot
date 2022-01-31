@@ -1,11 +1,10 @@
 from os import getenv
-from typing import List
 
 from dotenv import load_dotenv
 
 
 class Config:
-    BOT_TOKENS: List[str] = []
+    BOT_TOKEN = ''
     LOG_LEVEL = 'INFO'
     FILE_DIR = 'files/'
     LOG_FILE = 'bot.log'
@@ -16,11 +15,11 @@ class Config:
     def init(cls) -> None:
         load_dotenv()
 
-        tokens = getenv('BOT_TOKEN', '').replace(' ', '').split(',')
-        if not tokens:
+        token = getenv('BOT_TOKEN')
+        if not token:
             raise NotImplementedError('Environment-variable BOT_TOKEN is missing!')
 
-        cls.BOT_TOKENS = tokens
+        cls.BOT_TOKEN = token
         cls.LOG_LEVEL = getenv('LOG_LEVEL') or cls.LOG_LEVEL
         cls.FILE_DIR = (getenv('FILE_DIR') or cls.FILE_DIR).rstrip('/')
         cls.LOG_FILE = f'{cls.FILE_DIR}/{getenv("LOG_FILE") or cls.LOG_FILE}'

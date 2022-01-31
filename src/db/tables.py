@@ -75,6 +75,11 @@ class SQLiteTable(SQLiteClient, ABC):
             self.create_table(self._table_name, self._columns)
 
         existing_column_names = self.get_all_columns(self._table_name)
+
+        # TODO REMOVE SOON pylint: disable=fixme
+        if self._table_name == Tables.USERS and 'bot_id' in existing_column_names:
+            self.execute(f'ALTER TABLE {Tables.USERS} DROP bot_id')
+
         for column in self._columns:
             if column in existing_column_names:
                 continue
@@ -85,7 +90,7 @@ class SQLiteTable(SQLiteClient, ABC):
 
 class SQLiteUser(SQLiteTable):
     _table_name = Tables.USERS
-    _Columns_to_fetch = [UColumns.USER_ID, UColumns.USERNAME, UColumns.FIRST_NAME, UColumns.LAST_NAME, UColumns.BOT_ID]
+    _Columns_to_fetch = [UColumns.USER_ID, UColumns.USERNAME, UColumns.FIRST_NAME, UColumns.LAST_NAME]
     _base_query = f'SELECT {",".join(_Columns_to_fetch)} FROM {_table_name}'
     _columns = [col for col in UColumns]  # pylint: disable=unnecessary-comprehension
 
@@ -95,7 +100,6 @@ class SQLiteUser(SQLiteTable):
         user.username = str(row[self._Columns_to_fetch.index(UColumns.USERNAME)])
         user.first_name = str(row[self._Columns_to_fetch.index(UColumns.FIRST_NAME)])
         user.last_name = str(row[self._Columns_to_fetch.index(UColumns.LAST_NAME)])
-        user.bot_id = int(row[self._Columns_to_fetch.index(UColumns.BOT_ID)])
 
         return user
 
@@ -105,23 +109,17 @@ class SQLiteUser(SQLiteTable):
             UColumns.USERNAME: user.username,
             UColumns.FIRST_NAME: user.first_name,
             UColumns.LAST_NAME: user.last_name,
-            UColumns.BOT_ID: user.bot_id
         }
         self._upsert(update)
 
     def get_by_id(self, user_id: int) -> Optional[UserModel]:
         return self._fetch_by_id(user_id)  # type: ignore
 
-    def get_bot_id(self, user_id: int) -> int:
-        user = self.get_by_id(user_id)
-
-        return user.bot_id if user else 0
-
 
 class SQLiteNotifications(SQLiteTable):
     _table_name = Tables.NOTIFICATIONS
     _Columns_to_fetch = [NColumns.NOTIFICATION_ID, NColumns.QUERY, NColumns.MIN_PRICE, NColumns.MAX_PRICE,
-                         NColumns.ONLY_HOT, NColumns.SEARCH_MINDSTAR, UColumns.BOT_ID, NColumns.USER_ID]
+                         NColumns.ONLY_HOT, NColumns.SEARCH_MINDSTAR, NColumns.USER_ID]
     _base_query = (
         f'SELECT {",".join(_Columns_to_fetch)} FROM {_table_name} '
         f'INNER JOIN {Tables.USERS} ON {Tables.USERS}.{UColumns.USER_ID}={Tables.NOTIFICATIONS}.{NColumns.USER_ID}'
@@ -137,7 +135,6 @@ class SQLiteNotifications(SQLiteTable):
         notification.max_price = int(row[self._Columns_to_fetch.index(NColumns.MAX_PRICE)] or 0)
         notification.search_only_hot = str(row[self._Columns_to_fetch.index(NColumns.ONLY_HOT)]) in ['True', '1']
         notification.search_mindstar = str(row[self._Columns_to_fetch.index(NColumns.SEARCH_MINDSTAR)]) in ['True', '1']
-        notification.bot_id = int(row[self._Columns_to_fetch.index(UColumns.BOT_ID)] or 0)
 
         return notification
 

@@ -10,7 +10,6 @@ _COLUMN_CONFIG = {
     UColumns.USERNAME: 'TEXT',
     UColumns.FIRST_NAME: 'TEXT',
     UColumns.LAST_NAME: 'TEXT',
-    UColumns.BOT_ID: 'INTEGER NOT NULL',
     NColumns.NOTIFICATION_ID: 'INTEGER PRIMARY KEY',
     NColumns.USER_ID: 'INTEGER NOT NULL',
     NColumns.QUERY: 'TEXT',
