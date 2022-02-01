@@ -32,15 +32,15 @@ Install pre-commit hooks
 
 Run service in Python:
 
-    python daemon.py
+    python app.py
 
 Run bot only:
 
-    python src/bot.py
+    python run_bot.py
 
 Run feed-parser only:
 
-    python src/feed.py
+    python run_feed_parser.py
 
 To stop it press:
 

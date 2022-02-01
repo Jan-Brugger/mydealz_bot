@@ -9,7 +9,6 @@ from feedparser import FeedParserDict, parse
 from requests import Timeout
 from urllib3.exceptions import NewConnectionError
 
-from src.bot import Bot
 from src.config import Config
 from src.models import DealModel, NotificationModel
 
@@ -76,15 +75,10 @@ class AbstractFeed(ABC):
     async def get_new_deals(cls) -> List[DealModel]:
         try:
             response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=30)
-
             return cls.parse_feed(response.content)
 
         except (Timeout, NewConnectionError):
             logging.error('Fetching %s timed out', cls._feed)
-
-        except Exception as error:  # pylint: disable=broad-except
-            logging.exception(error)
-            Bot().send_error(error)
 
         return []
 

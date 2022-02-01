@@ -1,11 +1,13 @@
+# pylint: disable=too-many-instance-attributes
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from telegram import Update
+from aiogram.types import Chat
 
+from src.telegram.constants import notifications_cb
 
-# pylint: disable=too-many-instance-attributes
 
 class Model:
     pass
@@ -51,16 +53,11 @@ class UserModel(Model):
     def last_name(self, value: str) -> None:
         self.__last_name = value
 
-    def parse_telegram_user(self, update: Update) -> UserModel:
-        if not update.effective_chat:
-            raise Exception('Chat is missing for update', update)
-
-        self.id = update.effective_chat.id
-        self.username = update.effective_chat.title or update.effective_chat.username or ''
-
-        if update.effective_user:
-            self.first_name = update.effective_user.first_name or ''
-            self.last_name = update.effective_user.last_name or ''
+    def parse_telegram_chat(self, chat: Chat) -> UserModel:
+        self.id = chat.id
+        self.username = chat.title or chat.username or ''
+        self.first_name = chat.first_name or ''
+        self.last_name = chat.last_name or ''
 
         return self
 
@@ -134,6 +131,9 @@ class NotificationModel(Model):
     @search_mindstar.setter
     def search_mindstar(self, value: bool) -> None:
         self.__search_mindstar = value
+
+    def get_callback(self, action: str) -> str:
+        return str(notifications_cb.new(notification_id=self.id, action=action))
 
 
 @dataclass

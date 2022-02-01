@@ -3,16 +3,23 @@ import logging
 from asyncio import create_task
 from typing import List, Type
 
-from src.bot import Bot
-from src.core import Core
 from src.db.tables import SQLiteNotifications
-from src.feeds import AbstractFeed
 from src.models import DealModel, NotificationModel
+from src.rss.feeds import AbstractFeed
+from src.telegram.bot import TelegramBot
 
 
 class Parser:
-    @classmethod
-    async def parse(cls) -> None:
+    def __init__(self, telegram_bot: TelegramBot) -> None:
+        self.bot = telegram_bot
+
+    async def run(self) -> None:
+        try:
+            await self.parse()
+        except Exception as error:  # pylint: disable=broad-except
+            await self.bot.send_error(error)
+
+    async def parse(self) -> None:
         feeds: List[Type[AbstractFeed]] = AbstractFeed.__subclasses__()
 
         deals_list = await asyncio.gather(
@@ -31,10 +38,9 @@ class Parser:
         for notification in SQLiteNotifications().get_all():
             for key, deals in enumerate(deals_list):
                 if feeds[key].consider_deals(notification):
-                    cls.search_for_matching_deals(notification, deals)
+                    await self.search_for_matching_deals(notification, deals)
 
-    @classmethod
-    def search_for_matching_deals(cls, notification: NotificationModel, deals: List[DealModel]) -> None:
+    async def search_for_matching_deals(self, notification: NotificationModel, deals: List[DealModel]) -> None:
         for deal in deals:
             if notification.min_price and (not deal.price or deal.price < notification.min_price):
                 logging.debug('deal price (%s) is lower than searched min-price (%s) - skip',
@@ -62,12 +68,7 @@ class Parser:
 
                 if all(x in deal.title.lower() for x in search_for) \
                         and not any(x in deal.title.lower() for x in exclude):
-                    Bot().send_deal(deal, notification)
+                    await self.bot.send_deal(deal, notification)
                     logging.info('searched query (%s) found in title (%s) - send deal', notification.query, deal.title)
 
                     break  # don't send same deal multiple times
-
-
-if __name__ == '__main__':
-    Core.init()
-    asyncio.run(Parser().parse())

@@ -154,6 +154,9 @@ class SQLiteNotifications(SQLiteTable):
         return self._fetch_all()  # type: ignore
 
     def get_by_id(self, sqlite_id: int) -> Optional[NotificationModel]:
+        if not sqlite_id:
+            return None
+
         return self._fetch_by_id(sqlite_id)  # type: ignore
 
     def get_by_user_id(self, user_id: int) -> List[NotificationModel]:

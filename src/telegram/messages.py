@@ -1,8 +1,12 @@
 from src.models import DealModel, NotificationModel
 
 
-def start() -> str:
-    return 'Folgende Benachrichtigungen sind aktiv:'
+def start(add_message: str = '') -> str:
+    msg = 'Folgende Benachrichtigungen sind aktiv:'
+    if add_message:
+        msg = f'{add_message}\n\n{msg}'
+
+    return msg
 
 
 def help_msg() -> str:

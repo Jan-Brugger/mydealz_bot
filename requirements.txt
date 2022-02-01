@@ -1,9 +1,7 @@
+aiogram==2.19
+apscheduler==3.8.1
 feedparser==6.0.8
 python-dotenv==0.19.2
-python-telegram-bot==13.9
-requests==2.26.0
-types-pytz==2021.3.3
-types-requests==2.26.2
-pytz #  contained in python-telegram-bot
-APScheduler #  contained in python-telegram-bot
-telegram # contained in python-telegram-bot
+requests==2.27.1
+types-requests==2.27.8
+urllib3

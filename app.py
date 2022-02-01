@@ -3,16 +3,16 @@ import threading
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from src.bot import Bot
 from src.core import Core
-from src.parser import Parser
+from src.rss.parser import Parser
+from src.telegram.bot import TelegramBot
 
 
 def parse_job() -> None:
     loop = asyncio.new_event_loop()
     app_scheduler = AsyncIOScheduler(event_loop=loop, timezone='Europe/Berlin')
     app_scheduler.add_job(
-        Parser.parse,
+        Parser(TelegramBot()).run,
         'interval',
         seconds=60,
         max_instances=50
@@ -28,4 +28,4 @@ def parse_job() -> None:
 if __name__ == '__main__':
     Core.init()
     threading.Thread(target=parse_job).start()
-    Bot().run()
+    TelegramBot().run()
