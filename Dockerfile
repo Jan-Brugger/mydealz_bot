@@ -1,7 +1,4 @@
-FROM alpine:latest
-
-ENV PYTHONUNBUFFERED=1
-RUN apk add --update --no-cache python3=3.9.7-r4 py-pip py-cryptography && ln -sf python3 /usr/bin/python
+FROM python:3.9-slim
 
 WORKDIR /usr/src/app
 
