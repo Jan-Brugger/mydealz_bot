@@ -12,7 +12,7 @@ def parse_job() -> None:
     loop = asyncio.new_event_loop()
     app_scheduler = AsyncIOScheduler(event_loop=loop, timezone='Europe/Berlin')
     app_scheduler.add_job(
-        Parser(TelegramBot()).run,
+        Parser().run,
         'interval',
         seconds=60,
         max_instances=50

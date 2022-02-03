@@ -10,8 +10,8 @@ from src.telegram.bot import TelegramBot
 
 
 class Parser:
-    def __init__(self, telegram_bot: TelegramBot) -> None:
-        self.bot = telegram_bot
+    def __init__(self) -> None:
+        self.bot = TelegramBot()
 
     async def run(self) -> None:
         try:

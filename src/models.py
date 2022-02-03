@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
 
 from aiogram.types import Chat
 
@@ -145,7 +147,7 @@ class DealModel(Model):
         self.__merchant: str = ''
         self.__price: float = 0.0
         self.__link: str = ''
-        self.__timestamp: float = 0.0
+        self.__published: Optional[datetime] = None
 
     @property
     def title(self) -> str:
@@ -196,9 +198,12 @@ class DealModel(Model):
         self.__link = value
 
     @property
-    def timestamp(self) -> float:
-        return self.__timestamp
+    def published(self) -> datetime:
+        if not datetime:
+            raise NotImplementedError('Deal has no published-datetime')
 
-    @timestamp.setter
-    def timestamp(self, value: float) -> None:
-        self.__timestamp = value
+        return self.__published  # type:ignore
+
+    @published.setter
+    def published(self, value: datetime) -> None:
+        self.__published = value

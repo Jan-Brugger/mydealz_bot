@@ -1,8 +1,11 @@
 import html
 import json
 import logging
+import os
 import traceback
 from os import getenv
+from pickle import UnpicklingError
+from time import sleep
 from typing import Optional
 
 from aiogram import Bot, Dispatcher
@@ -22,7 +25,13 @@ from src.telegram.register import BOT_REGISTER, CBQRegister, MsgRegister
 class TelegramBot:
     def __init__(self) -> None:
         self.bot = Bot(token=Config.BOT_TOKEN, parse_mode=ParseMode.HTML)
-        storage = PickleStorage(path=Config.CHAT_FILE)
+        try:
+            storage = PickleStorage(path=Config.CHAT_FILE)
+        except UnpicklingError:
+            os.remove(Config.CHAT_FILE)
+            sleep(3)
+            storage = PickleStorage(path=Config.CHAT_FILE)
+
         dp = Dispatcher(self.bot, storage=storage)
 
         for handler in BOT_REGISTER:
@@ -90,5 +99,10 @@ class TelegramBot:
 
         await self.bot.send_message(chat_id=own_id, text=message)
 
+    @classmethod
+    async def shutdown(cls, dispatcher: Dispatcher) -> None:
+        await dispatcher.storage.close()
+        await dispatcher.storage.wait_closed()
+
     def run(self) -> None:
-        executor.start_polling(self.dp)
+        executor.start_polling(self.dp, on_shutdown=self.shutdown)
