@@ -1,6 +1,9 @@
 import logging
-import sqlite3
-from typing import Any, Dict, List
+from sqlite3 import Row
+from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tuple, Union
+
+import aiosqlite
+from aiosqlite import Cursor
 
 from src.config import Config
 from src.db.constants import Columns, NColumns, Tables, UColumns
@@ -29,29 +32,50 @@ _ADDITIONAL_COLUMN_CONFIG: Dict[Columns, str] = {
 
 class SQLiteClient:
     def __init__(self) -> None:
-        self.__conn: sqlite3.Connection = sqlite3.connect(Config.DATABASE)
-        self.__c: sqlite3.Cursor = self.__conn.cursor()
+        self.__db = Config.DATABASE
 
-    def commit(self) -> int:
-        self.__conn.commit()
+    async def __execute(
+            self,
+            query: str, values: Tuple[Union[str, int], ...] = (),
+            callback_function: Optional[Callable[[Cursor], Awaitable[Any]]] = None
+    ) -> Any:
+        async with aiosqlite.connect(self.__db) as db:
+            cursor: Cursor = await db.execute(query, values)
+            await db.commit()
+            logging.debug('sqlite query executed successfully\nquery: %s\nvalues: %s', query, values)
 
-        return int(self.__c.lastrowid)
+            return await callback_function(cursor) if callback_function else cursor.lastrowid
 
-    def close(self) -> None:
-        self.__conn.commit()
-        self.__conn.close()
+    async def fetch_one(self, query: str) -> Optional[Row]:
+        async def cb_func(cursor: Cursor) -> Optional[Row]: return await cursor.fetchone()
 
-    def execute(self, query: str, *parameters: Any) -> sqlite3.Cursor:
-        logging.debug('sqlite exec: %s', query)
+        return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-        return self.__c.execute(query, parameters)
+    async def fetch_all(self, query: str) -> Iterable[Row]:
+        async def cb_func(cursor: Cursor) -> Iterable[Row]: return await cursor.fetchall()
 
-    def check_if_table_exists(self, table_name: Tables) -> bool:
-        c = self.execute(f'SELECT count(name) FROM sqlite_master WHERE type="table" AND name="{table_name}"')
+        return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-        return c.fetchone()[0] == 1  # type: ignore
+    async def fetch_description(self, query: str) -> Tuple[Tuple[Any, ...]]:
+        async def cb_func(cursor: Cursor) -> Tuple[Tuple[Any, ...]]: return cursor.description
 
-    def create_table(self, table_name: Tables, fields: List[Columns]) -> None:
+        return await self.__execute(query, callback_function=cb_func)  # type: ignore
+
+    async def update(self, query: str, values: Tuple[Union[int, str], ...]) -> int:
+        return await self.__execute(query, values)  # type: ignore
+
+    async def delete(self, query: str) -> None:
+        await self.__execute('PRAGMA foreign_keys=ON')
+        await self.__execute(query)
+
+    async def check_if_table_exists(self, table_name: Tables) -> bool:
+        entry = await self.fetch_one(
+            f'SELECT count(name) FROM sqlite_master WHERE type="table" AND name="{table_name}"'
+        )
+
+        return bool(entry and entry[0] == 1)
+
+    async def create_table(self, table_name: Tables, fields: List[Columns]) -> None:
         all_fields_query: List[str] = []
         additional_column_config: List[str] = []
         for field in fields:
@@ -61,12 +85,15 @@ class SQLiteClient:
                 additional_column_config.append(_ADDITIONAL_COLUMN_CONFIG[field])
 
         query = f'{", ".join(all_fields_query)}, {",".join(additional_column_config)}'.rstrip(', ')
-        self.execute(f'CREATE TABLE IF NOT EXISTS {table_name} ({query});')
+        await self.__execute(f'CREATE TABLE IF NOT EXISTS {table_name} ({query});')
 
-    def add_column(self, table_name: Tables, column: Columns) -> None:
-        self.execute(f'ALTER TABLE {table_name} ADD {column} {_COLUMN_CONFIG[column]}')
+    async def add_column(self, table_name: Tables, column: Columns) -> None:
+        await self.__execute(f'ALTER TABLE {table_name} ADD {column} {_COLUMN_CONFIG[column]}')
 
-    def get_all_columns(self, table_name: Tables) -> List[str]:
-        c = self.execute(f'SELECT * FROM {table_name} LIMIT 1')
+    async def delete_column(self, table_name: Tables, column: str) -> None:
+        await self.__execute(f'ALTER TABLE {table_name} DROP {column}')
 
-        return [description[0] for description in c.description]
+    async def get_all_columns(self, table_name: Tables) -> List[str]:
+        description = await self.fetch_description(f'SELECT * FROM {table_name} LIMIT 1')
+
+        return [description[0] for description in description]

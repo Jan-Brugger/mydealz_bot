@@ -35,7 +35,7 @@ class Parser:
             ' | '.join([f'{feeds[key].__name__}: {len(deals)}' for key, deals in enumerate(deals_list)])
         )
 
-        for notification in SQLiteNotifications().get_all():
+        for notification in await SQLiteNotifications().get_all():
             for key, deals in enumerate(deals_list):
                 if feeds[key].consider_deals(notification):
                     await self.search_for_matching_deals(notification, deals)

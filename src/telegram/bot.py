@@ -1,3 +1,4 @@
+import asyncio
 import html
 import json
 import logging
@@ -71,7 +72,7 @@ class TelegramBot:
             )
         except Unauthorized:
             logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)
-            SQLiteUser().delete_by_id(notification.user_id)
+            await SQLiteUser().delete_by_id(notification.user_id)
 
         # except TimedOut as error:
         #     if first_try:
@@ -105,4 +106,6 @@ class TelegramBot:
         await dispatcher.storage.wait_closed()
 
     def run(self) -> None:
-        executor.start_polling(self.dp, on_shutdown=self.shutdown)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        executor.start_polling(self.dp, loop=loop, on_shutdown=self.shutdown)

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from os.path import isdir
@@ -12,7 +13,7 @@ class Core:
         cls._init_config()
         cls._create_files()
         cls._init_logging()
-        cls._init_database()
+        asyncio.run(cls._init_database())
 
     @classmethod
     def _init_config(cls) -> None:
@@ -39,7 +40,7 @@ class Core:
         stderr_log_handler.setFormatter(formatter)
 
     @classmethod
-    def _init_database(cls) -> None:
+    async def _init_database(cls) -> None:
         tables = SQLiteTable.__subclasses__()
         for table in tables:
-            table().init_table()  # type: ignore
+            await table().init_table()  # type: ignore

@@ -1,4 +1,5 @@
 aiogram==2.19
+aiosqlite==0.17.0
 apscheduler==3.8.1
 feedparser==6.0.8
 python-dotenv==0.19.2
