@@ -1,5 +1,6 @@
 import asyncio
 import threading
+from datetime import datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -15,7 +16,8 @@ def parse_job() -> None:
         Parser().run,
         'interval',
         seconds=60,
-        max_instances=50
+        max_instances=50,
+        next_run_time=datetime.now()
     )
     app_scheduler.start()
 

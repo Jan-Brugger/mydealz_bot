@@ -111,7 +111,7 @@ class MyDealzFeed(ABC):
 
 
 class MyDealzAllFeed(MyDealzFeed, AbstractFeed):
-    _last_update = datetime.min
+    _last_update = None
     _feed = 'https://www.mydealz.de/rss/alle'
 
     @classmethod
@@ -120,7 +120,7 @@ class MyDealzAllFeed(MyDealzFeed, AbstractFeed):
 
 
 class MyDealzHotFeed(MyDealzFeed, AbstractFeed):
-    _last_update = datetime.min
+    _last_update = None
     _feed = 'https://www.mydealz.de/rss/hot'  #
 
     @classmethod
@@ -129,7 +129,7 @@ class MyDealzHotFeed(MyDealzFeed, AbstractFeed):
 
 
 class MindStarsFeed(AbstractFeed):
-    _last_update = datetime.min
+    _last_update = None
     _feed = 'https://www.mindfactory.de/xml/rss/mindstar_artikel.xml'
 
     @classmethod
