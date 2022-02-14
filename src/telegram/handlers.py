@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, ReplyKey
 from aiogram.utils.exceptions import MessageCantBeEdited
 
 from src.db.tables import SQLiteNotifications, SQLiteUser
-from src.exceptions import NotificationNotFoundError
+from src.exceptions import NotificationNotFoundError, UserNotFoundError
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
 from src.telegram.constants import Commands, States
@@ -19,15 +19,14 @@ class Handlers:
     @classmethod
     async def start(cls, message: Message) -> None:
         sqlite_user = SQLiteUser()
+        try:
+            user = await cls.__get_user(message)
+        except UserNotFoundError:
+            user = UserModel().parse_telegram_chat(message.chat)
+            logging.info('added user: %s', user.__dict__)
+            await sqlite_user.upsert_model(user)
 
-        user_id = cls.__get_user_id(message)
-        user = await sqlite_user.get_by_id(user_id)
-        new_user = UserModel().parse_telegram_chat(message.chat)
-        if not user or vars(user) != vars(new_user):
-            logging.info('added/updated user: %s', new_user.__dict__)
-            await sqlite_user.upsert_model(new_user)
-
-        notifications = await SQLiteNotifications().get_by_user_id(user_id)
+        notifications = await SQLiteNotifications().get_by_user_id(user.id)
 
         await cls.__overwrite_or_answer(message, messages.start(), keyboards.start(notifications))
 
@@ -227,9 +226,11 @@ class Handlers:
             cls, message: Message, text: str, reply_markup: Optional[InlineKeyboardMarkup] = None
     ) -> None:
         try:
-            await message.edit_text(text, reply_markup=reply_markup)
+            await message.edit_text(text, reply_markup=reply_markup, disable_web_page_preview=True)
         except MessageCantBeEdited:
-            await message.answer(text, reply_markup=reply_markup or ReplyKeyboardRemove())
+            await message.answer(
+                text, reply_markup=reply_markup or ReplyKeyboardRemove(), disable_web_page_preview=True
+            )
 
     @classmethod
     async def __save_notification(cls, query: str, chat_id: int) -> NotificationModel:
@@ -238,8 +239,7 @@ class Handlers:
         notification.query = query
         notification.id = await SQLiteNotifications().upsert_model(notification)
 
-        logging.info('user %s added notification %s (%s)', notification.user_id, notification.id,
-                     notification.query)
+        logging.info('user %s added notification %s (%s)', notification.user_id, notification.id, notification.query)
 
         return notification
 
@@ -258,7 +258,7 @@ class Handlers:
 
         notification = await SQLiteNotifications().get_by_id(notification_id)
         if not notification:
-            raise NotificationNotFoundError
+            raise NotificationNotFoundError(notification_id)
 
         return notification
 
@@ -268,3 +268,13 @@ class Handlers:
             return int(source.chat.id)
 
         return int(source.message.chat.id)
+
+    @classmethod
+    async def __get_user(cls, source: Union[Message, CallbackQuery]) -> UserModel:
+        user_id = cls.__get_user_id(source)
+        user = await SQLiteUser().get_by_id(user_id)
+
+        if not user:
+            raise UserNotFoundError(user_id)
+
+        return user

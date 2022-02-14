@@ -13,7 +13,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.files import PickleStorage
 from aiogram.types import ParseMode, Update
 from aiogram.utils import executor
-from aiogram.utils.exceptions import Unauthorized
+from aiogram.utils.exceptions import ChatNotFound, Unauthorized
 
 from src.config import Config
 from src.db.tables import SQLiteUser
@@ -70,7 +70,7 @@ class TelegramBot:
                 parse_mode=ParseMode.HTML,
                 reply_markup=keyboard
             )
-        except Unauthorized:
+        except (Unauthorized, ChatNotFound):
             logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)
             await SQLiteUser().delete_by_id(notification.user_id)
 

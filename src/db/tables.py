@@ -1,9 +1,8 @@
 import logging
 from abc import ABC, abstractmethod
-from sqlite3 import Row
 from typing import Any, Dict, Iterable, List, Optional, Union
 
-from src.db.client import SQLiteClient
+from src.db.client import RowType, SQLiteClient
 from src.db.constants import Columns, NColumns, Tables, UColumns
 from src.models import Model, NotificationModel, UserModel
 
@@ -25,10 +24,10 @@ class SQLiteTable(SQLiteClient, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _parse_row(self, row: Row) -> Model:
+    def _parse_row(self, row: RowType) -> Model:
         raise NotImplementedError
 
-    def _parse_rows(self, rows: Iterable[Row]) -> List[Model]:
+    def _parse_rows(self, rows: Iterable[RowType]) -> List[Model]:
         return [self._parse_row(row) for row in rows]
 
     async def _upsert(self, update: Dict[str, Any], sqlite_id: int = 0) -> int:
@@ -82,19 +81,22 @@ class SQLiteTable(SQLiteClient, ABC):
             logging.info('Remove deprecated column "%s" from "%s"', deprecated_column, self._table_name)
             await self.delete_column(self._table_name, deprecated_column)
 
+    @classmethod
+    def to_bool(cls, value: Optional[Union[str, int]]) -> bool:
+        return str(value).lower() in ['true', '1']
+
 
 class SQLiteUser(SQLiteTable):
     _table_name = Tables.USERS
-    _Columns_to_fetch = [UColumns.USER_ID, UColumns.USERNAME, UColumns.FIRST_NAME, UColumns.LAST_NAME]
-    _base_query = f'SELECT {",".join(_Columns_to_fetch)} FROM {_table_name}'
     _columns = [col for col in UColumns]  # pylint: disable=unnecessary-comprehension
+    _base_query = f'SELECT * FROM {_table_name}'
 
-    def _parse_row(self, row: Row) -> UserModel:
+    def _parse_row(self, row: RowType) -> UserModel:
         user = UserModel()
-        user.id = int(row[self._Columns_to_fetch.index(UColumns.USER_ID)])
-        user.username = str(row[self._Columns_to_fetch.index(UColumns.USERNAME)])
-        user.first_name = str(row[self._Columns_to_fetch.index(UColumns.FIRST_NAME)])
-        user.last_name = str(row[self._Columns_to_fetch.index(UColumns.LAST_NAME)])
+        user.id = int(row[UColumns.USER_ID])  # type:ignore
+        user.username = str(row[UColumns.USERNAME])
+        user.first_name = str(row[UColumns.FIRST_NAME])
+        user.last_name = str(row[UColumns.LAST_NAME])
 
         return user
 
@@ -113,23 +115,21 @@ class SQLiteUser(SQLiteTable):
 
 class SQLiteNotifications(SQLiteTable):
     _table_name = Tables.NOTIFICATIONS
-    _Columns_to_fetch = [NColumns.NOTIFICATION_ID, NColumns.QUERY, NColumns.MIN_PRICE, NColumns.MAX_PRICE,
-                         NColumns.ONLY_HOT, NColumns.SEARCH_MINDSTAR, NColumns.USER_ID]
+    _columns = [col for col in NColumns]  # pylint: disable=unnecessary-comprehension
     _base_query = (
-        f'SELECT {",".join(_Columns_to_fetch)} FROM {_table_name} '
+        f'SELECT * FROM {_table_name} '
         f'INNER JOIN {Tables.USERS} ON {Tables.USERS}.{UColumns.USER_ID}={Tables.NOTIFICATIONS}.{NColumns.USER_ID}'
     )
-    _columns = [col for col in NColumns]  # pylint: disable=unnecessary-comprehension
 
-    def _parse_row(self, row: Row) -> NotificationModel:
+    def _parse_row(self, row: Dict[Union[NColumns, UColumns], Any]) -> NotificationModel:
         notification = NotificationModel()
-        notification.id = int(row[self._Columns_to_fetch.index(NColumns.NOTIFICATION_ID)])
-        notification.user_id = int(row[self._Columns_to_fetch.index(NColumns.USER_ID)])
-        notification.query = str(row[self._Columns_to_fetch.index(NColumns.QUERY)])
-        notification.min_price = int(row[self._Columns_to_fetch.index(NColumns.MIN_PRICE)] or 0)
-        notification.max_price = int(row[self._Columns_to_fetch.index(NColumns.MAX_PRICE)] or 0)
-        notification.search_only_hot = str(row[self._Columns_to_fetch.index(NColumns.ONLY_HOT)]) in ['True', '1']
-        notification.search_mindstar = str(row[self._Columns_to_fetch.index(NColumns.SEARCH_MINDSTAR)]) in ['True', '1']
+        notification.id = int(row[NColumns.NOTIFICATION_ID])
+        notification.user_id = int(row[NColumns.USER_ID])
+        notification.query = str(row[NColumns.QUERY])
+        notification.min_price = int(row[NColumns.MIN_PRICE] or 0)
+        notification.max_price = int(row[NColumns.MAX_PRICE] or 0)
+        notification.search_only_hot = self.to_bool(row[NColumns.ONLY_HOT])
+        notification.search_mindstar = self.to_bool(row[NColumns.SEARCH_MINDSTAR])
 
         return notification
 

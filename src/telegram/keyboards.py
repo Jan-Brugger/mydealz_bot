@@ -2,16 +2,25 @@ from typing import List
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from src.telegram.constants import CallbackVars, add_notification_cb
 from src.models import NotificationModel
+from src.telegram.constants import CallbackVars, add_notification_cb
 
 
 def start(notifications: List[NotificationModel]) -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup()
     for notification in sorted(notifications):
+
+        query = f'🔍 {notification.query} '
+        if notification.min_price:
+            query += '💸'
+        if notification.max_price:
+            query += '💰'
+        if notification.search_only_hot:
+            query += '🌶️'
+
         keyboard.add(
             InlineKeyboardButton(
-                f'🔍 {notification.query}', callback_data=notification.get_callback(CallbackVars.VIEW)
+                query.strip(), callback_data=notification.get_callback(CallbackVars.VIEW)
             ),
         )
 
@@ -24,13 +33,18 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
     keyboard = InlineKeyboardMarkup()
 
     keyboard.row(
-        InlineKeyboardButton('✏️️ Suchbegriff ändern', callback_data=notification.get_callback(CallbackVars.UPDATE_QUERY)),
+        InlineKeyboardButton(
+            '✏️️ Suchbegriff ändern', callback_data=notification.get_callback(CallbackVars.UPDATE_QUERY)
+        ),
         InlineKeyboardButton('❌ Löschen', callback_data=notification.get_callback(CallbackVars.DELETE))
     )
     keyboard.row(
-        InlineKeyboardButton('💸 Minimalpreis ändern',
-                             callback_data=notification.get_callback(CallbackVars.UPDATE_MIN_PRICE)),
-        InlineKeyboardButton('💰 Maximalpreis ändern', callback_data=notification.get_callback(CallbackVars.UPDATE_MAX_PRICE))
+        InlineKeyboardButton(
+            '💸 Minimalpreis ändern', callback_data=notification.get_callback(CallbackVars.UPDATE_MIN_PRICE)
+        ),
+        InlineKeyboardButton(
+            '💰 Maximalpreis ändern', callback_data=notification.get_callback(CallbackVars.UPDATE_MAX_PRICE)
+        )
     )
 
     hot_toggle_text = '🆕 Alle Deals senden' if notification.search_only_hot else '🌶️ Nur heiße Deals senden'
@@ -38,7 +52,9 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
 
     keyboard.row(
         InlineKeyboardButton(hot_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_ONLY_HOT)),
-        InlineKeyboardButton(mindstar_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_MINDSTAR))
+        InlineKeyboardButton(
+            mindstar_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_MINDSTAR)
+        )
     )
 
     keyboard.row(

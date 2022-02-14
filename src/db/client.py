@@ -29,10 +29,20 @@ _ADDITIONAL_COLUMN_CONFIG: Dict[Columns, str] = {
     )
 }
 
+RowType = Dict[Union[UColumns, NColumns], Optional[Union[str, int]]]
+
 
 class SQLiteClient:
     def __init__(self) -> None:
         self.__db = Config.DATABASE
+
+    @staticmethod
+    def dict_factory(cursor: Cursor, row: Tuple[Any, ...]) -> RowType:
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+
+        return d
 
     async def __execute(
             self,
@@ -40,18 +50,19 @@ class SQLiteClient:
             callback_function: Optional[Callable[[Cursor], Awaitable[Any]]] = None
     ) -> Any:
         async with aiosqlite.connect(self.__db) as db:
+            db.row_factory = self.dict_factory  # type:ignore
             cursor: Cursor = await db.execute(query, values)
             await db.commit()
             logging.debug('sqlite query executed successfully\nquery: %s\nvalues: %s', query, values)
 
             return await callback_function(cursor) if callback_function else cursor.lastrowid
 
-    async def fetch_one(self, query: str) -> Optional[Row]:
+    async def fetch_one(self, query: str) -> RowType:
         async def cb_func(cursor: Cursor) -> Optional[Row]: return await cursor.fetchone()
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-    async def fetch_all(self, query: str) -> Iterable[Row]:
+    async def fetch_all(self, query: str) -> Iterable[RowType]:
         async def cb_func(cursor: Cursor) -> Iterable[Row]: return await cursor.fetchall()
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
@@ -73,7 +84,7 @@ class SQLiteClient:
             f'SELECT count(name) FROM sqlite_master WHERE type="table" AND name="{table_name}"'
         )
 
-        return bool(entry and entry[0] == 1)
+        return bool(entry and entry['count(name)'] == 1)  # type:ignore
 
     async def create_table(self, table_name: Tables, fields: List[Columns]) -> None:
         all_fields_query: List[str] = []
