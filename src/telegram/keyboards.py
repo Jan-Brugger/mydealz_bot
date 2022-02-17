@@ -2,7 +2,7 @@ from typing import List
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from src.models import NotificationModel
+from src.models import NotificationModel, UserModel
 from src.telegram.constants import CallbackVars, add_notification_cb
 
 
@@ -48,17 +48,13 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
     )
 
     hot_toggle_text = '🆕 Alle Deals senden' if notification.search_only_hot else '🌶️ Nur heiße Deals senden'
-    mindstar_toggle_text = '⭕ Mindstar nicht durchsuchen' if notification.search_mindstar else '⭐ Mindstar durchsuchen'
 
     keyboard.row(
         InlineKeyboardButton(hot_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_ONLY_HOT)),
-        InlineKeyboardButton(
-            mindstar_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_MINDSTAR)
-        )
+        InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=CallbackVars.ADD),
     )
 
     keyboard.row(
-        InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=CallbackVars.ADD),
         InlineKeyboardButton('🏠 Home', callback_data=CallbackVars.HOME)
     )
 
@@ -82,5 +78,23 @@ def add_notification_inconclusive(text: str) -> InlineKeyboardMarkup:
         InlineKeyboardButton('✅ Ja', callback_data=add_notification_cb.new(query=text)),
         InlineKeyboardButton('❌ Nein', callback_data=CallbackVars.HOME)
     )
+
+    return keyboard
+
+
+def settings(user: UserModel) -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup()
+
+    toggles = [
+        (CallbackVars.TOGGLE_MYDEALZ, user.search_mydealz, 'mydealz.de'),
+        (CallbackVars.TOGGLE_MINDSTAR, user.search_mindstar, 'MindStar'),
+        (CallbackVars.TOGGLE_PREISJAEGER, user.search_preisjaeger, 'preisjaeger.at'),
+    ]
+    for toggle in toggles:
+        keyboard.add(
+            InlineKeyboardButton(f'✅ {toggle[2]}' if toggle[1] else f'❌ {toggle[2]}', callback_data=toggle[0])
+        )
+
+    keyboard.add(InlineKeyboardButton('🏠 Home', callback_data=CallbackVars.HOME))
 
     return keyboard

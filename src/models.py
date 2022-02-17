@@ -22,6 +22,9 @@ class UserModel(Model):
         self.__username: str = ''
         self.__first_name: str = ''
         self.__last_name: str = ''
+        self.__search_mydealz: bool = True
+        self.__search_mindstar: bool = True
+        self.__search_preisjaeger: bool = False
 
     @property
     def id(self) -> int:
@@ -63,6 +66,30 @@ class UserModel(Model):
 
         return self
 
+    @property
+    def search_mydealz(self) -> bool:
+        return self.__search_mydealz
+
+    @search_mydealz.setter
+    def search_mydealz(self, value: bool) -> None:
+        self.__search_mydealz = value
+
+    @property
+    def search_mindstar(self) -> bool:
+        return self.__search_mindstar
+
+    @search_mindstar.setter
+    def search_mindstar(self, value: bool) -> None:
+        self.__search_mindstar = value
+
+    @property
+    def search_preisjaeger(self) -> bool:
+        return self.__search_preisjaeger
+
+    @search_preisjaeger.setter
+    def search_preisjaeger(self, value: bool) -> None:
+        self.__search_preisjaeger = value
+
 
 @dataclass
 class NotificationModel(Model):
@@ -73,7 +100,9 @@ class NotificationModel(Model):
         self.__min_price: int = 0
         self.__max_price: int = 0
         self.__search_only_hot: bool = False
+        self.__search_mydealz: bool = True
         self.__search_mindstar: bool = True
+        self.__search_preisjaeger: bool = True
 
     def __lt__(self, other: NotificationModel) -> bool:
         return self.query.lower() < other.query.lower()
@@ -127,12 +156,28 @@ class NotificationModel(Model):
         self.__search_only_hot = value
 
     @property
+    def search_mydealz(self) -> bool:
+        return self.__search_mydealz
+
+    @search_mydealz.setter
+    def search_mydealz(self, value: bool) -> None:
+        self.__search_mydealz = value
+
+    @property
     def search_mindstar(self) -> bool:
         return self.__search_mindstar
 
     @search_mindstar.setter
     def search_mindstar(self, value: bool) -> None:
         self.__search_mindstar = value
+
+    @property
+    def search_preisjaeger(self) -> bool:
+        return self.__search_preisjaeger
+
+    @search_preisjaeger.setter
+    def search_preisjaeger(self, value: bool) -> None:
+        self.__search_preisjaeger = value
 
     def get_callback(self, action: str) -> str:
         return str(notifications_cb.new(notification_id=self.id, action=action))

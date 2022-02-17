@@ -13,13 +13,15 @@ _COLUMN_CONFIG = {
     UColumns.USERNAME: 'TEXT',
     UColumns.FIRST_NAME: 'TEXT',
     UColumns.LAST_NAME: 'TEXT',
+    UColumns.SEARCH_MYDEALZ: 'BOOL DEFAULT 1',
+    UColumns.SEARCH_MINDSTAR: 'BOOL DEFAULT 1',
+    UColumns.SEARCH_PREISJAEGER: 'BOOL DEFAULT 1',
     NColumns.NOTIFICATION_ID: 'INTEGER PRIMARY KEY',
     NColumns.USER_ID: 'INTEGER NOT NULL',
     NColumns.QUERY: 'TEXT',
     NColumns.MIN_PRICE: 'INTEGER',
     NColumns.MAX_PRICE: 'INTEGER',
-    NColumns.ONLY_HOT: 'BOOL',
-    NColumns.SEARCH_MINDSTAR: 'BOOL',
+    NColumns.ONLY_HOT: 'BOOL DEFAULT 0',
 }
 
 _ADDITIONAL_COLUMN_CONFIG: Dict[Columns, str] = {
@@ -72,7 +74,7 @@ class SQLiteClient:
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-    async def update(self, query: str, values: Tuple[Union[int, str], ...]) -> int:
+    async def update(self, query: str, values: Optional[Tuple[Union[int, str], ...]]) -> int:
         return await self.__execute(query, values)  # type: ignore
 
     async def delete(self, query: str) -> None:

@@ -15,6 +15,9 @@ class UColumns(Columns):
     USERNAME = 'username'
     FIRST_NAME = 'first_name'
     LAST_NAME = 'last_name'
+    SEARCH_MYDEALZ = 'search_md'
+    SEARCH_MINDSTAR = 'search_ms'
+    SEARCH_PREISJAEGER = 'search_pj'
 
 
 class NColumns(Columns):
@@ -23,5 +26,4 @@ class NColumns(Columns):
     MIN_PRICE = 'min_price'
     MAX_PRICE = 'max_price'
     ONLY_HOT = 'hot_only'
-    SEARCH_MINDSTAR = 'search_mindstar'
     USER_ID = 'user_id'

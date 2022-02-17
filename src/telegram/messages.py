@@ -1,12 +1,11 @@
-from src.models import DealModel, NotificationModel
+from src.models import DealModel, NotificationModel, UserModel
+from src.telegram.constants import Commands
 
 
-def start(add_message: str = '') -> str:
-    msg = 'Folgende Benachrichtigungen sind aktiv:'
-    if add_message:
-        msg = f'{add_message}\n\n{msg}'
-
-    return msg
+def start(user: UserModel) -> str:
+    return f'{settings(user)}\n' \
+           f'Nutze /{Commands.SETTINGS} zum anpassen\n\n' \
+           f'Folgende Suchbegriffe sind aktiv:'
 
 
 def help_msg() -> str:
@@ -85,3 +84,19 @@ def add_notification_inconclusive(text: str) -> str:
 
 def notification_not_found() -> str:
     return 'Die Benachrichtigung wurde bereits gelöscht.'
+
+
+def settings(user: UserModel) -> str:  # pylint: disable =unused-argument
+    pages = []
+    if user.search_mydealz:
+        pages.append('mydealz.de')
+    if user.search_mindstar:
+        pages.append('MindStar (mindfactory.de/Highlights/MindStar)')
+    if user.search_preisjaeger:
+        pages.append('preisjaeger.at')
+
+    message = 'Folgende Websites werden durchsucht:'
+    for page in pages:
+        message += f'\n + {page}'
+
+    return message

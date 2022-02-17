@@ -39,6 +39,7 @@ class CBQRegister(AbstractRegister):
 BOT_REGISTER = [
     MsgRegister(Handlers.start, commands=Commands.START),
     MsgRegister(Handlers.help, commands=Commands.HELP),
+    MsgRegister(Handlers.settings, commands=Commands.SETTINGS, state='*'),
     MsgRegister(Handlers.start_over, commands=Commands.START, state='*'),
     CBQRegister(Handlers.start_over, text=CallbackVars.HOME, state='*'),
     CBQRegister(Handlers.add_notification, text=CallbackVars.ADD),
@@ -53,7 +54,9 @@ BOT_REGISTER = [
     MsgRegister(Handlers.process_edit_max_price, regexp=PRICE_PATTERN, state=States.EDIT_MAX_PRICE),
     MsgRegister(Handlers.process_edit_max_price, commands=Commands.REMOVE, state=States.EDIT_MAX_PRICE),
     CBQRegister(Handlers.toggle_only_hot, notifications_cb.filter(action=CallbackVars.TOGGLE_ONLY_HOT)),
-    CBQRegister(Handlers.toggle_mindstar, notifications_cb.filter(action=CallbackVars.TOGGLE_MINDSTAR)),
+    CBQRegister(Handlers.toggle_mydealz, text=CallbackVars.TOGGLE_MYDEALZ),
+    CBQRegister(Handlers.toggle_mindstar, text=CallbackVars.TOGGLE_MINDSTAR),
+    CBQRegister(Handlers.toggle_preisjaeger, text=CallbackVars.TOGGLE_PREISJAEGER),
     CBQRegister(Handlers.delete_notification, notifications_cb.filter(action=CallbackVars.DELETE)),
     MsgRegister(Handlers.add_notification_inconclusive, regexp=QUERY_PATTERN_LIMITED_CHARS),
     CBQRegister(Handlers.process_add_notification_inconclusive, add_notification_cb.filter()),

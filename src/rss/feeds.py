@@ -92,7 +92,7 @@ class AbstractFeed(ABC):
         pass
 
 
-class MyDealzFeed(ABC):
+class PepperFeed(ABC):
     @classmethod
     def parse_deal(cls, entry: FeedParserDict) -> DealModel:
         deal = DealModel()
@@ -110,22 +110,40 @@ class MyDealzFeed(ABC):
         return deal
 
 
-class MyDealzAllFeed(MyDealzFeed, AbstractFeed):
+class MyDealzAllFeed(PepperFeed, AbstractFeed):
     _last_update = None
     _feed = 'https://www.mydealz.de/rss/alle'
 
     @classmethod
     def consider_deals(cls, notification: NotificationModel) -> bool:
-        return not notification.search_only_hot
+        return notification.search_mydealz and not notification.search_only_hot
 
 
-class MyDealzHotFeed(MyDealzFeed, AbstractFeed):
+class MyDealzHotFeed(PepperFeed, AbstractFeed):
     _last_update = None
-    _feed = 'https://www.mydealz.de/rss/hot'  #
+    _feed = 'https://www.mydealz.de/rss/hot'
 
     @classmethod
     def consider_deals(cls, notification: NotificationModel) -> bool:
-        return notification.search_only_hot
+        return notification.search_mydealz and notification.search_only_hot
+
+
+class PreisjaegerAllFeed(PepperFeed, AbstractFeed):
+    _last_update = None
+    _feed = 'https://www.preisjaeger.at/rss/alle'
+
+    @classmethod
+    def consider_deals(cls, notification: NotificationModel) -> bool:
+        return notification.search_preisjaeger and not notification.search_only_hot
+
+
+class PreisjaegerHotFeed(PepperFeed, AbstractFeed):
+    _last_update = None
+    _feed = 'https://www.preisjaeger.at/rss/hot'
+
+    @classmethod
+    def consider_deals(cls, notification: NotificationModel) -> bool:
+        return notification.search_preisjaeger and notification.search_only_hot
 
 
 class MindStarsFeed(AbstractFeed):

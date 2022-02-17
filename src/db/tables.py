@@ -62,6 +62,12 @@ class SQLiteTable(SQLiteClient, ABC):
     async def delete_by_id(self, sqlite_id: Union[str, int]) -> None:
         await self.delete(f'DELETE FROM {self._table_name} WHERE {self._table_name}.ROWID == {sqlite_id}')
 
+    async def toggle_field(self, sqlite_id: Union[str, int], field: Union[UColumns, NColumns]) -> None:
+        await self.update(
+            f'UPDATE {self._table_name} SET {field} = abs({field}-1) WHERE {self._table_name}.ROWID == {sqlite_id}'
+            , None
+        )
+
     async def init_table(self) -> None:
         if not await self.check_if_table_exists(self._table_name):
             logging.info('Create table "%s"', self._table_name)
@@ -81,10 +87,6 @@ class SQLiteTable(SQLiteClient, ABC):
             logging.info('Remove deprecated column "%s" from "%s"', deprecated_column, self._table_name)
             await self.delete_column(self._table_name, deprecated_column)
 
-    @classmethod
-    def to_bool(cls, value: Optional[Union[str, int]]) -> bool:
-        return str(value).lower() in ['true', '1']
-
 
 class SQLiteUser(SQLiteTable):
     _table_name = Tables.USERS
@@ -97,6 +99,9 @@ class SQLiteUser(SQLiteTable):
         user.username = str(row[UColumns.USERNAME])
         user.first_name = str(row[UColumns.FIRST_NAME])
         user.last_name = str(row[UColumns.LAST_NAME])
+        user.search_mydealz = bool(row[UColumns.SEARCH_MYDEALZ])
+        user.search_mindstar = bool(row[UColumns.SEARCH_MINDSTAR])
+        user.search_preisjaeger = bool(row[UColumns.SEARCH_PREISJAEGER])
 
         return user
 
@@ -106,6 +111,9 @@ class SQLiteUser(SQLiteTable):
             UColumns.USERNAME: user.username,
             UColumns.FIRST_NAME: user.first_name,
             UColumns.LAST_NAME: user.last_name,
+            UColumns.SEARCH_MYDEALZ: user.search_mydealz,
+            UColumns.SEARCH_MINDSTAR: user.search_mindstar,
+            UColumns.SEARCH_PREISJAEGER: user.search_preisjaeger,
         }
         await self._upsert(update)
 
@@ -128,8 +136,10 @@ class SQLiteNotifications(SQLiteTable):
         notification.query = str(row[NColumns.QUERY])
         notification.min_price = int(row[NColumns.MIN_PRICE] or 0)
         notification.max_price = int(row[NColumns.MAX_PRICE] or 0)
-        notification.search_only_hot = self.to_bool(row[NColumns.ONLY_HOT])
-        notification.search_mindstar = self.to_bool(row[NColumns.SEARCH_MINDSTAR])
+        notification.search_only_hot = bool(row[NColumns.ONLY_HOT])
+        notification.search_mydealz = bool(row[UColumns.SEARCH_MYDEALZ])
+        notification.search_mindstar = bool(row[UColumns.SEARCH_MINDSTAR])
+        notification.search_preisjaeger = bool(row[UColumns.SEARCH_PREISJAEGER])
 
         return notification
 
@@ -140,7 +150,6 @@ class SQLiteNotifications(SQLiteTable):
             NColumns.MIN_PRICE: notification.min_price,
             NColumns.MAX_PRICE: notification.max_price,
             NColumns.ONLY_HOT: notification.search_only_hot,
-            NColumns.SEARCH_MINDSTAR: notification.search_mindstar,
         }
 
         return await self._upsert(update, notification.id)

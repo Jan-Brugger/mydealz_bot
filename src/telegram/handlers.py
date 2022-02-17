@@ -5,6 +5,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, ReplyKeyboardRemove, Update
 from aiogram.utils.exceptions import MessageCantBeEdited
 
+from src.db.constants import UColumns
 from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.exceptions import NotificationNotFoundError, UserNotFoundError
 from src.models import NotificationModel, UserModel
@@ -28,24 +29,27 @@ class Handlers:
 
         notifications = await SQLiteNotifications().get_by_user_id(user.id)
 
-        await cls.__overwrite_or_answer(message, messages.start(), keyboards.start(notifications))
+        await cls.__overwrite_or_answer(message, messages.start(user), keyboards.start(notifications))
 
     @classmethod
     async def help(cls, message: Message) -> None:
         await cls.__overwrite_or_answer(message, messages.help_msg())
 
     @classmethod
-    async def start_over(
-            cls, telegram_object: Union[Message, CallbackQuery], state: FSMContext, add_message: str = ''
-    ) -> None:
-        message = telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object
+    async def start_over(cls, telegram_object: Union[Message, CallbackQuery], state: FSMContext) -> None:
+        await cls.__finish_state(state)
+        await cls.start(telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object)
 
-        if await state.get_state():
-            await state.finish()
+    @classmethod
+    async def settings(cls, telegram_object: Union[Message, CallbackQuery], state: Optional[FSMContext] = None) -> None:
+        await cls.__finish_state(state)
+        user = await cls.__get_user(telegram_object)
 
-        notifications = await SQLiteNotifications().get_by_user_id(cls.__get_user_id(telegram_object))
-
-        await cls.__overwrite_or_answer(message, messages.start(add_message), keyboards.start(notifications))
+        await cls.__overwrite_or_answer(
+            telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object,
+            messages.settings(user),
+            reply_markup=keyboards.settings(user)
+        )
 
     @classmethod
     async def add_notification(cls, query: CallbackQuery) -> None:
@@ -151,19 +155,26 @@ class Handlers:
         await cls.show_notification(query, callback_data)
 
     @classmethod
-    async def toggle_mindstar(cls, query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
-        notification = await cls.__get_notification(callback_data)
-        notification.search_mindstar = not notification.search_mindstar
-        await SQLiteNotifications().upsert_model(notification)
-
-        await cls.show_notification(query, callback_data)
+    async def toggle_mydealz(cls, query: CallbackQuery) -> None:
+        await SQLiteUser().toggle_field(cls.__get_user_id(query), UColumns.SEARCH_MYDEALZ)
+        await cls.settings(query)
 
     @classmethod
-    async def delete_notification(cls, query: CallbackQuery, callback_data: Dict[str, Any], state: FSMContext) -> None:
+    async def toggle_mindstar(cls, query: CallbackQuery) -> None:
+        await SQLiteUser().toggle_field(cls.__get_user_id(query), UColumns.SEARCH_MINDSTAR)
+        await cls.settings(query)
+
+    @classmethod
+    async def toggle_preisjaeger(cls, query: CallbackQuery) -> None:
+        await SQLiteUser().toggle_field(cls.__get_user_id(query), UColumns.SEARCH_PREISJAEGER)
+        await cls.settings(query)
+
+    @classmethod
+    async def delete_notification(cls, query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
         notification = await cls.__get_notification(callback_data)
         await SQLiteNotifications().delete_by_id(notification.id)
 
-        await cls.start_over(query, state, messages.notification_deleted(notification))
+        await cls.__overwrite_or_answer(query.message, messages.notification_deleted(notification))
 
     @classmethod
     async def add_notification_inconclusive(cls, message: Message) -> None:
@@ -200,7 +211,7 @@ class Handlers:
                 reply_markup=keyboards.notification_commands(notification)
             )
 
-        await state.finish()
+        await cls.__finish_state(state)
 
     @classmethod
     async def invalid_query(cls, message: Message) -> None:
@@ -278,3 +289,8 @@ class Handlers:
             raise UserNotFoundError(user_id)
 
         return user
+
+    @classmethod
+    async def __finish_state(cls, state: Optional[FSMContext]) -> None:
+        if state and await state.get_state():
+            await state.finish()
