@@ -72,8 +72,8 @@ def notification_deleted(notification: NotificationModel) -> str:
 def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
     message = f'Neuer Deal für "{notification.query}":\n<a href="{deal.link}">{deal.title}</a>'
 
-    if deal.price:
-        message += f'\n Preis: {deal.price:.2f} €'
+    if deal.price.amount:
+        message += f'\n Preis: {deal.price.amount:.2f} {deal.price.currency}'
 
     return message
 

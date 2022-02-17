@@ -42,14 +42,14 @@ class Parser:
 
     async def search_for_matching_deals(self, notification: NotificationModel, deals: List[DealModel]) -> None:
         for deal in deals:
-            if notification.min_price and (not deal.price or deal.price < notification.min_price):
+            if notification.min_price and (not deal.price.amount or deal.price.amount < notification.min_price):
                 logging.debug('deal price (%s) is lower than searched min-price (%s) - skip',
-                              deal.price, notification.max_price)
+                              deal.price.amount, notification.max_price)
                 continue
 
-            if deal.price and notification.max_price and deal.price > notification.max_price:
+            if deal.price.amount and notification.max_price and deal.price.amount > notification.max_price:
                 logging.debug('deal price (%s) is higher than searched max-price (%s) - skip',
-                              deal.price, notification.max_price)
+                              deal.price.amount, notification.max_price)
                 continue
 
             logging.debug('search for query (%s) in title (%s)', notification.query, deal.title)

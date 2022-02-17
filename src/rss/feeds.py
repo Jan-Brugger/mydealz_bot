@@ -6,6 +6,7 @@ from typing import List, Optional
 
 import requests
 from feedparser import FeedParserDict, parse
+from price_parser import Price
 from requests import Timeout
 from urllib3.exceptions import NewConnectionError
 
@@ -100,8 +101,7 @@ class PepperFeed(ABC):
         deal.description = entry.get('description', '')
         deal.category = entry.get('category', '')
         deal.merchant = entry.get('pepper_merchant', {}).get('name', '')
-        price = entry.get('pepper_merchant', {}).get('price', '').strip('€').replace('.', '').replace(',', '.')
-        deal.price = float(price or 0)
+        deal.price = Price.fromstring(entry.get('pepper_merchant', {}).get('price', ''))
         deal.link = entry.get('link', '')
         deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
         if deal.merchant and deal.merchant not in deal.title:
@@ -156,7 +156,7 @@ class MindStarsFeed(AbstractFeed):
         deal.merchant = 'Mindfactory'
         deal.title = f'[{deal.merchant}] {entry.get("title", "")}'
         deal.description = entry.get('summary', '')
-        deal.price = float(entry.get('_price', '0').replace(',', ''))
+        deal.price = Price.fromstring(entry.get('_price', ''))
         deal.link = entry.get('link', '')
         deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
 

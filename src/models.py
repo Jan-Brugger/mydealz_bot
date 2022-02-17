@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional
 
 from aiogram.types import Chat
+from price_parser import Price
 
 from src.telegram.constants import notifications_cb
 
@@ -190,7 +191,7 @@ class DealModel(Model):
         self.__description: str = ''
         self.__category: str = ''
         self.__merchant: str = ''
-        self.__price: float = 0.0
+        self.__price: Price = Price.fromstring('')
         self.__link: str = ''
         self.__published: Optional[datetime] = None
 
@@ -227,11 +228,11 @@ class DealModel(Model):
         self.__merchant = value
 
     @property
-    def price(self) -> float:
+    def price(self) -> Price:
         return self.__price
 
     @price.setter
-    def price(self, value: float) -> None:
+    def price(self, value: Price) -> None:
         self.__price = value
 
     @property
