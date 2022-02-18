@@ -5,7 +5,7 @@ from src.telegram.constants import CallbackVars, Commands, States, add_notificat
 from src.telegram.handlers import Handlers
 
 QUERY_PATTERN = r'^[\w\.+&,\! ]+$'
-QUERY_PATTERN_LIMITED_CHARS = r'^[\w\.+&,\! ]{1,59}$'
+QUERY_PATTERN_LIMITED_CHARS = r'^[\w\.+&,\! ]{1,58}$'
 PRICE_PATTERN = r'^\d+([,\.]\d{1,2})?$'
 
 

@@ -23,6 +23,9 @@ class Handlers:
         try:
             user = await cls.__get_user(message)
         except UserNotFoundError:
+            logging.info(
+                'User started the bot first time.\nUser: %s\nLocale:%s', message.from_user, message.from_user.locale
+            )
             user = UserModel().parse_telegram_chat(message.chat)
             logging.info('added user: %s', user.__dict__)
             await sqlite_user.upsert_model(user)
@@ -174,7 +177,11 @@ class Handlers:
         notification = await cls.__get_notification(callback_data)
         await SQLiteNotifications().delete_by_id(notification.id)
 
-        await cls.__overwrite_or_answer(query.message, messages.notification_deleted(notification))
+        await cls.__overwrite_or_answer(
+            query.message,
+            messages.notification_deleted(notification),
+            reply_markup=keyboards.notification_deleted()
+        )
 
     @classmethod
     async def add_notification_inconclusive(cls, message: Message) -> None:

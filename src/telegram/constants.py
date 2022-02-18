@@ -39,4 +39,4 @@ class States(StatesGroup):
 
 
 notifications_cb = CallbackData('notification', 'action', 'notification_id')
-add_notification_cb = CallbackData('add_notification', 'query')
+add_notification_cb = CallbackData('add_cb', 'query')

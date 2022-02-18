@@ -60,14 +60,14 @@ class Parser:
                 search_for = []
                 exclude = []
                 for query in and_seperated_query:
-                    query = query.strip()
-                    if query.startswith('!'):
-                        exclude.append(query.lstrip('! '))
-                    else:
-                        search_for.append(query)
+                    exclamation_mark_separated_query = query.split('!')
+                    search_for.append(exclamation_mark_separated_query[0].strip())
 
-                if all(x in deal.title.lower() for x in search_for) \
-                        and not any(x in deal.title.lower() for x in exclude):
+                    for exclude_query in exclamation_mark_separated_query[1:]:
+                        exclude.append(exclude_query.strip())
+
+                if all(x in deal.title.lower() for x in search_for if x) \
+                        and not any(x in deal.title.lower() for x in exclude if x):
                     await self.bot.send_deal(deal, notification)
                     logging.info('searched query (%s) found in title (%s) - send deal', notification.query, deal.title)
 
