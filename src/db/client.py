@@ -78,8 +78,10 @@ class SQLiteClient:
         return await self.__execute(query, values)  # type: ignore
 
     async def delete(self, query: str) -> None:
-        await self.__execute('PRAGMA foreign_keys=ON')
-        await self.__execute(query)
+        async with aiosqlite.connect(self.__db) as db:
+            await db.execute('PRAGMA foreign_keys=ON')
+            await db.execute(query)
+            await db.commit()
 
     async def check_if_table_exists(self, table_name: Tables) -> bool:
         entry = await self.fetch_one(

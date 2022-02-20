@@ -98,7 +98,11 @@ class TelegramBot:
         tb_string = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
         message += f'<pre>{html.escape(tb_string)}</pre>'
 
-        await self.bot.send_message(chat_id=own_id, text=message)
+        if len(message) > 4096:
+            for x in range(0, len(message), 4096):
+                await self.bot.send_message(chat_id=own_id, text=message[x:x + 4096])
+        else:
+            await self.bot.send_message(chat_id=own_id, text=message)
 
     @classmethod
     async def shutdown(cls, dispatcher: Dispatcher) -> None:
