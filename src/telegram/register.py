@@ -4,8 +4,9 @@ from typing import Any, Callable, Coroutine, Dict, Tuple
 from src.telegram.constants import CallbackVars, Commands, States, add_notification_cb, notifications_cb
 from src.telegram.handlers import Handlers
 
-QUERY_PATTERN = r'^[\w\.+&,\! ]+$'
-QUERY_PATTERN_LIMITED_CHARS = r'^[\w\.+&,\! ]{1,58}$'
+ALLOWED_CHARACTERS = r'\w+&,\!\[\] '
+QUERY_PATTERN = rf'^[{ALLOWED_CHARACTERS}]+$'
+QUERY_PATTERN_LIMITED_CHARS = rf'^[{ALLOWED_CHARACTERS}]{{1,58}}$'
 PRICE_PATTERN = r'^\d+([,\.]\d{1,2})?$'
 
 
@@ -38,7 +39,7 @@ class CBQRegister(AbstractRegister):
 
 BOT_REGISTER = [
     MsgRegister(Handlers.start, commands=Commands.START),
-    MsgRegister(Handlers.help, commands=Commands.HELP),
+    MsgRegister(Handlers.help, commands=Commands.HELP, state='*'),
     MsgRegister(Handlers.settings, commands=Commands.SETTINGS, state='*'),
     MsgRegister(Handlers.start_over, commands=Commands.START, state='*'),
     CBQRegister(Handlers.start_over, text=CallbackVars.HOME, state='*'),

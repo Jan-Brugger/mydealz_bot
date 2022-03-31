@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from aiogram.types import Chat
 from price_parser import Price
@@ -126,11 +127,36 @@ class NotificationModel(Model):
 
     @property
     def query(self) -> str:
-        return self.__query
+        return self.__query.replace('&', ' & ').replace(',', ', ')
 
     @query.setter
     def query(self, value: str) -> None:
-        self.__query = value
+        queries = re.findall(r'([&,])?\s*(!?[\w+]{2,})', value.lower())
+
+        self.__query = ''.join([f'{q[0] or "&"}{q[1]}' for q in queries]).strip('&, ')
+
+    @property
+    def queries(self) -> List[Tuple[List[str], List[str]]]:
+        """
+        Returns a list of tuples where first element is list of include queries and second is list of exclude queries.
+
+        :return: list of tuples where first element is list of include queries and second is list of exclude queries
+        """
+        queries = []
+
+        or_queries = self.__query.split(',')
+        for oq in or_queries:
+            query: Tuple[List[str], List[str]] = ([], [])
+            for aq in oq.split('&'):
+                aq = aq.strip().replace('+', ' ')
+                if aq.startswith('!'):
+                    query[1].append(aq[1:])
+                else:
+                    query[0].append(aq)
+
+            queries.append(query)
+
+        return queries
 
     @property
     def min_price(self) -> int:
@@ -197,11 +223,11 @@ class DealModel(Model):
 
     @property
     def title(self) -> str:
-        return self.__title
+        return f'[{self.merchant}] {self.__title}' if self.merchant else self.__title
 
     @title.setter
     def title(self, value: str) -> None:
-        self.__title = value
+        self.__title = ' '.join(value.split())
 
     @property
     def description(self) -> str:

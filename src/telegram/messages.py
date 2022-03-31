@@ -1,3 +1,5 @@
+import textwrap
+
 from src.models import DealModel, NotificationModel, UserModel
 from src.telegram.constants import Commands
 
@@ -9,24 +11,47 @@ def start(user: UserModel) -> str:
 
 
 def help_msg() -> str:
-    return 'Um den Bot zu starten, nutze das Kommando /start' \
-           '\n\n<b>Suchbegriffe:</b>' \
-           '\ncase-insensitive und führende/anhängende Leerzeichen werden entfernt.' \
-           '\n-> "nutella&rewe,nutella&lidl" \nliefert die selben Ergebnisse wie \n"Nutella & REWE, Nutella & Lidl"' \
-           '\n\n<b>Minimaler Preis:</b>' \
-           '\nNur Benachrichtigungen für Deals mit höherer oder ohne Preisangabe' \
-           '\n\n<b>Maximaler Preis:</b>' \
-           '\nNur Benachrichtigungen für Deals mit niedrigerer oder ohne Preisangabe' \
-           '\n\n<b>Reichweite:</b> ' \
-           '\nAlle Deals -> Benachrichtigungen für alle Deals' \
-           '\nNur heiße Deals -> Benachrichtigungen für Deals > 100°'
+    return textwrap.dedent(
+        '''
+        <b><u>Suchbegriffe:</u></b>
+        <b>-Groß- und Kleinschreibung werden nicht berücksichtigt
+        - Leerzeichen werden entfernt
+        - Standardmäßig wird ein Multi-Match verwendet</b>
+        "<i>nutella&rewe</i>", "<i>Nutella & REWE</i>", und "<i>Nutella Rewe</i>" werden als "<i>nutella & rewe</i>" gespeichert.
+
+        <b>Für mehrere Suchbegriffe benutze ein ",":</b>
+        "<i>Nutella, Ovomaltine</i>" sucht nach Nutella oder Ovomaltine.
+
+        <b>Um nach einem Leerzeichen zu suchen, benutze ein "+":</b>
+        "<i>3060+TI</i>" liefert alle Deals mit "3060 TI" im Titel
+        ("<i>3060 TI</i>" würde auch bei einem Deal mit dem Titel "RTX 3060 und Gra<b>ti</b>s Mauspad" anschlagen).
+
+        <b>Um nach einem bestimmten Shop zu suchen, nutze eckige Klammern:</b>
+        "<i>[Saturn], [Media+Markt]</i>" liefert alle Deals bei denen Saturn oder Media Markt als Händler hinterlegt ist.
+
+        <b><u>Minimaler Preis:</u></b>
+        Nur Benachrichtigungen für Deals mit höherer oder ohne Preisangabe
+
+        <b><u>Maximaler Preis:</u></b>
+        Nur Benachrichtigungen für Deals mit niedrigerer oder ohne Preisangabe
+
+        <b><u>Reichweite:</u></b>
+        Alle Deals -> Benachrichtigungen für alle Deals
+        Nur heiße Deals -> Benachrichtigungen für Deals mit mehr als 100°
+
+        <b><u>Unterstützte Websites:</u></b>
+        - mydealz.de
+        - preisjaeger.at
+        - MindStar (mindfactory.de/Highlights/MindStar)
+        mit /settings kann angepasst werden, welche Websites durchsucht werden sollen.
+        '''
+    )
 
 
 def query_instructions() -> str:
     return 'Bitte gebe eine Liste aus kommaseparierten Suchbegriffen ein.' \
-           '\nGültige Zeichen: (Buchstaben, Zahlen - , + & . !)' \
-           '\nFür ein Multi-Matching nutze `&` (z.B.: Zelda & Switch)' \
-           '\nUm ein Wort auszuschließen nutze `& !` (z.B.: PS5 & !lokal)' \
+           '\nGültige Zeichen: (Buchstaben, Zahlen - , + & ! [ ])' \
+           '\n/help für mehr Details' \
            '\n/cancel zum abbrechen'
 
 

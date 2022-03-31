@@ -100,7 +100,7 @@ def settings(user: UserModel) -> InlineKeyboardMarkup:
     return keyboard
 
 
-def notification_deleted() -> InlineKeyboardMarkup:
+def home_button() -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup()
     keyboard.add(
         InlineKeyboardButton('🏠 Home', callback_data=CallbackVars.HOME)

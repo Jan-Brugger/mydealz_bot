@@ -53,21 +53,10 @@ class Parser:
                 continue
 
             logging.debug('search for query (%s) in title (%s)', notification.query, deal.title)
-            for comma_separated_query in notification.query.lower().split(','):
-                logging.debug('')
-                and_seperated_query = comma_separated_query.split('&')
 
-                search_for = []
-                exclude = []
-                for query in and_seperated_query:
-                    exclamation_mark_separated_query = query.split('!')
-                    search_for.append(exclamation_mark_separated_query[0].strip())
-
-                    for exclude_query in exclamation_mark_separated_query[1:]:
-                        exclude.append(exclude_query.strip())
-
-                if all(x in deal.title.lower() for x in search_for if x) \
-                        and not any(x in deal.title.lower() for x in exclude if x):
+            title = ' '.join(deal.title.lower().split())
+            for query in notification.queries:
+                if all(x in title for x in query[0] if x) and not any(x in title for x in query[1] if x):
                     await self.bot.send_deal(deal, notification)
                     logging.info('searched query (%s) found in title (%s) - send deal', notification.query, deal.title)
 

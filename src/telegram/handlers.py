@@ -35,8 +35,14 @@ class Handlers:
         await cls.__overwrite_or_answer(message, messages.start(user), keyboards.start(notifications))
 
     @classmethod
-    async def help(cls, message: Message) -> None:
-        await cls.__overwrite_or_answer(message, messages.help_msg())
+    async def help(
+            cls, telegram_object: Union[Message, CallbackQuery], state: FSMContext  # pylint: disable=unused-argument
+    ) -> None:
+        await cls.__overwrite_or_answer(
+            telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object,
+            messages.help_msg(),
+            reply_markup=keyboards.home_button()
+        )
 
     @classmethod
     async def start_over(cls, telegram_object: Union[Message, CallbackQuery], state: FSMContext) -> None:
@@ -180,7 +186,7 @@ class Handlers:
         await cls.__overwrite_or_answer(
             query.message,
             messages.notification_deleted(notification),
-            reply_markup=keyboards.notification_deleted()
+            reply_markup=keyboards.home_button()
         )
 
     @classmethod

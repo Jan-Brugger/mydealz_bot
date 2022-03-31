@@ -104,8 +104,6 @@ class PepperFeed(ABC):
         deal.price = Price.fromstring(entry.get('pepper_merchant', {}).get('price', ''))
         deal.link = entry.get('link', '')
         deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
-        if deal.merchant and deal.merchant not in deal.title:
-            deal.title = f'[{deal.merchant}] {deal.title}'
 
         return deal
 
@@ -154,7 +152,7 @@ class MindStarsFeed(AbstractFeed):
     def parse_deal(cls, entry: FeedParserDict) -> DealModel:
         deal = DealModel()
         deal.merchant = 'Mindfactory'
-        deal.title = f'[{deal.merchant}] {entry.get("title", "")}'
+        deal.title = entry.get('title', '')
         deal.description = entry.get('summary', '')
         deal.price = Price.fromstring(entry.get('_price', ''))
         deal.link = entry.get('link', '')
