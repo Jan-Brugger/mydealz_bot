@@ -223,11 +223,18 @@ class DealModel(Model):
 
     @property
     def title(self) -> str:
-        return f'[{self.merchant}] {self.__title}' if self.merchant else self.__title
+        if not self.__merchant:
+            return self.__title
+
+        title = self.__title
+        if title.lower().lstrip('[( ').startswith(self.__merchant.lower()):
+            title = title[title.lower().find(self.__merchant.lower()) + len(self.__merchant):].lstrip(')] ')
+
+        return f'[{self.merchant}] {title}'
 
     @title.setter
     def title(self, value: str) -> None:
-        self.__title = ' '.join(value.split())
+        self.__title = ' '.join(value.split()).strip()
 
     @property
     def description(self) -> str:
