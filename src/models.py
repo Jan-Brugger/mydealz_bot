@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 from aiogram.types import Chat
 from price_parser import Price
 
-from src.telegram.constants import notifications_cb
+from src.telegram.constants import ALLOWED_CHARACTERS, notifications_cb
 
 
 class Model:
@@ -131,7 +131,8 @@ class NotificationModel(Model):
 
     @query.setter
     def query(self, value: str) -> None:
-        queries = re.findall(r'([&,])?\s*(!?[\w+]{2,})', value.lower())
+        value = (' '.join(value.split())).lower().replace('! ', '!')
+        queries = re.findall(fr'([&,])?\s*(!?[{ALLOWED_CHARACTERS}]{{2,}})', value)
 
         self.__query = ''.join([f'{q[0] or "&"}{q[1]}' for q in queries]).strip('&, ')
 

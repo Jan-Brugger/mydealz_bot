@@ -3,6 +3,9 @@ from enum import Enum
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.callback_data import CallbackData
 
+ALLOWED_CHARACTERS = r'\w+\!\[\]'
+ALLOWED_SEPARATORS = r' &,'
+
 
 class StrEnum(str, Enum):
     def __str__(self) -> str:

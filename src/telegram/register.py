@@ -1,12 +1,12 @@
 from abc import ABC
 from typing import Any, Callable, Coroutine, Dict, Tuple
 
-from src.telegram.constants import CallbackVars, Commands, States, add_notification_cb, notifications_cb
+from src.telegram.constants import ALLOWED_CHARACTERS, ALLOWED_SEPARATORS, CallbackVars, Commands, States, \
+    add_notification_cb, notifications_cb
 from src.telegram.handlers import Handlers
 
-ALLOWED_CHARACTERS = r'\w+&,\!\[\] '
-QUERY_PATTERN = rf'^[{ALLOWED_CHARACTERS}]+$'
-QUERY_PATTERN_LIMITED_CHARS = rf'^[{ALLOWED_CHARACTERS}]{{1,58}}$'
+QUERY_PATTERN = rf'^[{ALLOWED_SEPARATORS}{ALLOWED_CHARACTERS}]+$'
+QUERY_PATTERN_LIMITED_CHARS = rf'^[{ALLOWED_SEPARATORS}{ALLOWED_CHARACTERS}]{{1,58}}$'
 PRICE_PATTERN = r'^\d+([,\.]\d{1,2})?$'
 
 
