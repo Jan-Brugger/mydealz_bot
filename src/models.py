@@ -132,7 +132,7 @@ class NotificationModel(Model):
     @query.setter
     def query(self, value: str) -> None:
         value = (' '.join(value.split())).lower().replace('! ', '!')
-        queries = re.findall(fr'([&,])?\s*(!?[{ALLOWED_CHARACTERS}]{{2,}})', value)
+        queries = re.findall(fr'([&,])?\s*(!?[{ALLOWED_CHARACTERS}]+)', value)
 
         self.__query = ''.join([f'{q[0] or "&"}{q[1]}' for q in queries]).strip('&, ')
 
