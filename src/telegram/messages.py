@@ -60,7 +60,7 @@ def invalid_query() -> str:
 
 
 def notification_added(notification: NotificationModel) -> str:
-    return f'Benachrichtigung angelegt\n\n{notification_overview(notification)}'
+    return f'Suchbegriff angelegt\n\n{notification_overview(notification)}'
 
 
 def notification_overview(notification: NotificationModel) -> str:
@@ -91,7 +91,7 @@ def invalid_price(price_type: str) -> str:
 
 
 def notification_deleted(notification: NotificationModel) -> str:
-    return f'Benachrichtigung "{notification.query}" gelöscht'
+    return f'Suchbegriff "{notification.query}" gelöscht'
 
 
 def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
@@ -104,11 +104,11 @@ def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
 
 
 def add_notification_inconclusive(text: str) -> str:
-    return f'Möchtest Du eine Benachrichtigung für "{text}" erstellen?'
+    return f'Möchtest Du eine Suchbegriff für "{text}" erstellen?'
 
 
 def notification_not_found() -> str:
-    return 'Die Benachrichtigung wurde bereits gelöscht.'
+    return 'Der Suchbegriff wurde bereits gelöscht.'
 
 
 def settings(user: UserModel) -> str:  # pylint: disable =unused-argument

@@ -24,7 +24,7 @@ def start(notifications: List[NotificationModel]) -> InlineKeyboardMarkup:
             ),
         )
 
-    keyboard.add(InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=CallbackVars.ADD))
+    keyboard.add(InlineKeyboardButton('➕ Suchbegriff hinzufügen', callback_data=CallbackVars.ADD))
 
     return keyboard
 
@@ -51,7 +51,7 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
 
     keyboard.row(
         InlineKeyboardButton(hot_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_ONLY_HOT)),
-        InlineKeyboardButton('➕ Benachrichtigung hinzufügen', callback_data=CallbackVars.ADD),
+        InlineKeyboardButton('➕ Suchbegriff hinzufügen', callback_data=CallbackVars.ADD),
     )
 
     keyboard.row(
