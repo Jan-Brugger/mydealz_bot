@@ -19,6 +19,7 @@ This is a Docker container to run a telegram bot that tracks mydealz.de for new 
 | -v /etc/localtime:/etc/localtime:ro          | Use correct timezone from docker-host                                                                                     |
 | --env BOT_TOKEN=<<YOUR_BOT_TOKEN>>           | Your telegram-bot token. You can create one with @BotFather                                                               |
 | --env OWN_ID=<<YOUR_TELEGRAM_ID>>            | Your telegram-user-id. It's used to forward error-messages
+| --env PARSE_INTERVAL=<<INTERVAL>>            | How often new deals should be fetched (in seconds)
 
 ### docker-compose.yaml
 

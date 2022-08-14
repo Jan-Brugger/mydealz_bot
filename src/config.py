@@ -10,6 +10,7 @@ class Config:
     LOG_FILE = 'bot.log'
     CHAT_FILE = 'chat_data'
     DATABASE = 'sqlite_v2.db'
+    PARSE_INTERVAL = 60
 
     @classmethod
     def init(cls) -> None:
@@ -25,3 +26,5 @@ class Config:
         cls.LOG_FILE = f'{cls.FILE_DIR}/{getenv("LOG_FILE") or cls.LOG_FILE}'
         cls.CHAT_FILE = f'{cls.FILE_DIR}/{getenv("CHAT_FILE") or cls.CHAT_FILE}'
         cls.DATABASE = f'{cls.FILE_DIR}/{getenv("DATABASE") or cls.DATABASE}'
+        interval = getenv('PARSE_INTERVAL')
+        cls.PARSE_INTERVAL = int(interval) if interval else cls.PARSE_INTERVAL

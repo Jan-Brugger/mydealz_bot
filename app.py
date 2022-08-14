@@ -4,6 +4,7 @@ from datetime import datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from src.config import Config
 from src.core import Core
 from src.rss.parser import Parser
 from src.telegram.bot import TelegramBot
@@ -15,7 +16,7 @@ def parse_job() -> None:
     app_scheduler.add_job(
         Parser().run,
         'interval',
-        seconds=60,
+        seconds=Config.PARSE_INTERVAL,
         max_instances=50,
         next_run_time=datetime.now()
     )
