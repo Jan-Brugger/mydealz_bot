@@ -11,6 +11,7 @@ class Config:
     CHAT_FILE = 'chat_data'
     DATABASE = 'sqlite_v2.db'
     PARSE_INTERVAL = 60
+    NOTIFICATION_CAP = 50
 
     @classmethod
     def init(cls) -> None:
@@ -28,3 +29,4 @@ class Config:
         cls.DATABASE = f'{cls.FILE_DIR}/{getenv("DATABASE") or cls.DATABASE}'
         interval = getenv('PARSE_INTERVAL')
         cls.PARSE_INTERVAL = int(interval) if interval else cls.PARSE_INTERVAL
+        cls.NOTIFICATION_CAP = int(getenv('NOTIFICATION_CAP') or cls.NOTIFICATION_CAP)

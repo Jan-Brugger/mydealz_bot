@@ -165,3 +165,6 @@ class SQLiteNotifications(SQLiteTable):
 
     async def get_by_user_id(self, user_id: int) -> List[NotificationModel]:
         return await self._fetch_by_field(NColumns.USER_ID, user_id)  # type: ignore
+
+    async def count_notifications_by_user_id(self, user_id: int) -> int:
+        return await self.count_rows_by_field(Tables.NOTIFICATIONS, NColumns.USER_ID, user_id)
