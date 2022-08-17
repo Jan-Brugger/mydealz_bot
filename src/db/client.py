@@ -112,3 +112,12 @@ class SQLiteClient:
         description = await self.fetch_description(f'SELECT * FROM {table_name} LIMIT 1')
 
         return [description[0] for description in description]
+
+    async def count_rows_by_field(self, table_name: Tables, field: Columns, value: Union[str, int]) -> int:
+        async def cb_func(cursor: Cursor) -> Optional[Row]: return await cursor.fetchone()
+
+        result = await self.__execute(
+            f'SELECT COUNT(*) as counter FROM {table_name} WHERE {field} = {value}', callback_function=cb_func
+        )
+
+        return int(result.get('counter', 0))

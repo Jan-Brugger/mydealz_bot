@@ -17,7 +17,7 @@ from aiogram.utils.exceptions import ChatNotFound, Unauthorized
 
 from src.config import Config
 from src.db.tables import SQLiteUser
-from src.exceptions import NotificationNotFoundError
+from src.exceptions import NotificationNotFoundError, TooManyNotificationsError
 from src.models import DealModel, NotificationModel
 from src.telegram import keyboards, messages
 from src.telegram.register import BOT_REGISTER, CBQRegister, MsgRegister
@@ -43,11 +43,17 @@ class TelegramBot:
 
         @dp.errors_handler()
         async def error_handler(update: Update, error: Exception) -> bool:
-            if isinstance(error, NotificationNotFoundError):
+
+            if isinstance(error, (NotificationNotFoundError, TooManyNotificationsError)):
+                error_mapping = {
+                    NotificationNotFoundError: messages.notification_not_found(),
+                    TooManyNotificationsError: messages.too_many_notifications()
+                }
+                error_message = error_mapping.get(type(error), '')
                 if update.callback_query:
-                    await update.callback_query.message.edit_text(messages.notification_not_found(), reply_markup=None)
+                    await update.callback_query.message.edit_text(error_message, reply_markup=None)
                 else:
-                    await update.message.answer(messages.notification_not_found(), reply_markup=None)
+                    await update.message.answer(error_message, reply_markup=None)
 
                 return True
 

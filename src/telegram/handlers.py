@@ -7,10 +7,11 @@ from aiogram.utils.exceptions import MessageCantBeEdited
 
 from src.db.constants import UColumns
 from src.db.tables import SQLiteNotifications, SQLiteUser
-from src.exceptions import NotificationNotFoundError, UserNotFoundError
+from src.exceptions import NotificationNotFoundError, UserNotFoundError, TooManyNotificationsError
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
 from src.telegram.constants import Commands, States
+from src.config import Config
 
 CallbackDataType = Dict[str, Any]
 
@@ -62,11 +63,13 @@ class Handlers:
 
     @classmethod
     async def add_notification(cls, query: CallbackQuery) -> None:
+
         await States.ADD_NOTIFICATION.set()
         await cls.__overwrite_or_answer(query.message, messages.query_instructions())
 
     @classmethod
     async def process_add_notification(cls, message: Message, state: FSMContext) -> None:
+
         notification = await cls.__save_notification(message.text, message.chat.id)
         await state.finish()
         await cls.__overwrite_or_answer(
@@ -258,6 +261,11 @@ class Handlers:
 
     @classmethod
     async def __save_notification(cls, query: str, chat_id: int) -> NotificationModel:
+        amount_notifications = await SQLiteNotifications().count_notifications_by_user_id(chat_id)
+
+        if amount_notifications > Config.NOTIFICATION_CAP:
+            raise TooManyNotificationsError(chat_id)
+
         notification = NotificationModel()
         notification.user_id = chat_id
         notification.query = query

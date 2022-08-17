@@ -2,6 +2,7 @@ import textwrap
 
 from src.models import DealModel, NotificationModel, UserModel
 from src.telegram.constants import Commands
+from src.config import Config
 
 
 def start(user: UserModel) -> str:
@@ -109,6 +110,10 @@ def add_notification_inconclusive(text: str) -> str:
 
 def notification_not_found() -> str:
     return 'Der Suchbegriff wurde bereits gelöscht.'
+
+
+def too_many_notifications() -> str:
+    return f'Die Begrenzung für Suchbegriffe liegt bei: {Config.NOTIFICATION_CAP}'
 
 
 def settings(user: UserModel) -> str:  # pylint: disable =unused-argument
