@@ -63,13 +63,11 @@ class Handlers:
 
     @classmethod
     async def add_notification(cls, query: CallbackQuery) -> None:
-
         await States.ADD_NOTIFICATION.set()
         await cls.__overwrite_or_answer(query.message, messages.query_instructions())
 
     @classmethod
     async def process_add_notification(cls, message: Message, state: FSMContext) -> None:
-
         notification = await cls.__save_notification(message.text, message.chat.id)
         await state.finish()
         await cls.__overwrite_or_answer(
