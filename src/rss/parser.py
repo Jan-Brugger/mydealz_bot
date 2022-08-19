@@ -23,10 +23,10 @@ class Parser:
         feeds: List[Type[AbstractFeed]] = AbstractFeed.__subclasses__()
 
         deals_list = await asyncio.gather(
-            *[create_task(feed.get_new_deals()) for feed in feeds]
+            *[create_task(feed.get_new_deals()) for feed in feeds], return_exceptions=False
         )
 
-        new_deals_amount = sum([len(deals) for deals in deals_list])
+        new_deals_amount = sum(len(deals) for deals in deals_list)
         if new_deals_amount == 0:
             return
 
@@ -35,29 +35,39 @@ class Parser:
             ' | '.join([f'{feeds[key].__name__}: {len(deals)}' for key, deals in enumerate(deals_list)])
         )
 
-        for notification in await SQLiteNotifications().get_all():
-            for key, deals in enumerate(deals_list):
-                if feeds[key].consider_deals(notification):
-                    await self.search_for_matching_deals(notification, deals)
+        all_notifications = await SQLiteNotifications().get_all()
+        for feed_number, deals in enumerate(deals_list):
+            for deal in deals:
+                sent_to_users = []
+                for notification in all_notifications:
+                    if not feeds[feed_number].consider_deals(notification) or notification.user_id in sent_to_users:
+                        continue
 
-    async def search_for_matching_deals(self, notification: NotificationModel, deals: List[DealModel]) -> None:
-        for deal in deals:
-            if notification.min_price and (not deal.price.amount or deal.price.amount < notification.min_price):
-                logging.debug('deal price (%s) is lower than searched min-price (%s) - skip',
-                              deal.price.amount, notification.max_price)
-                continue
+                    if self.notification_matches_deal(notification, deal):
+                        await self.bot.send_deal(deal, notification)
+                        sent_to_users.append(notification.user_id)
 
-            if deal.price.amount and notification.max_price and deal.price.amount > notification.max_price:
-                logging.debug('deal price (%s) is higher than searched max-price (%s) - skip',
-                              deal.price.amount, notification.max_price)
-                continue
+    @classmethod
+    def notification_matches_deal(cls, notification: NotificationModel, deal: DealModel) -> bool:
+        if notification.min_price and (not deal.price.amount or deal.price.amount < notification.min_price):
+            logging.debug('deal price (%s) is lower than searched min-price (%s) - skip',
+                          deal.price.amount, notification.max_price)
 
-            logging.debug('search for query (%s) in title (%s)', notification.query, deal.title)
+            return False
 
-            title = ' '.join(deal.title.lower().split())
-            for query in notification.queries:
-                if all(x in title for x in query[0] if x) and not any(x in title for x in query[1] if x):
-                    await self.bot.send_deal(deal, notification)
-                    logging.info('searched query (%s) found in title (%s) - send deal', notification.query, deal.title)
+        if deal.price.amount and notification.max_price and deal.price.amount > notification.max_price:
+            logging.debug('deal price (%s) is higher than searched max-price (%s) - skip',
+                          deal.price.amount, notification.max_price)
 
-                    break  # don't send same deal multiple times
+            return False
+
+        logging.debug('search for query (%s) in title (%s)', notification.query, deal.title)
+
+        title = ' '.join(deal.title.lower().split())
+        for query in notification.queries:
+            if all(x in title for x in query[0] if x) and not any(x in title for x in query[1] if x):
+                logging.info('searched query (%s) found in title (%s) - send deal', notification.query, deal.title)
+
+                return True
+
+        return False

@@ -261,7 +261,7 @@ class Handlers:
     async def __save_notification(cls, query: str, chat_id: int) -> NotificationModel:
         amount_notifications = await SQLiteNotifications().count_notifications_by_user_id(chat_id)
 
-        if amount_notifications > Config.NOTIFICATION_CAP:
+        if amount_notifications >= Config.NOTIFICATION_CAP:
             raise TooManyNotificationsError(chat_id)
 
         notification = NotificationModel()
