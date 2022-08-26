@@ -32,6 +32,8 @@ class Commands(StrEnum):
     START = 'start'
     HELP = 'help'
     SETTINGS = 'settings'
+    BLOCK_USER = 'block'
+    UNBLOCK_USER = 'unblock'
 
 
 class States(StatesGroup):

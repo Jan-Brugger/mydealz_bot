@@ -21,6 +21,7 @@ This is a Docker container to run a telegram bot that tracks mydealz.de for new 
 | --env OWN_ID=<<YOUR_TELEGRAM_ID>>            | Your telegram-user-id. It's used to forward error-messages                                                                |
 | --env PARSE_INTERVAL=<<INTERVAL>>            | How often new deals should be fetched (in seconds)                                                                        |
 | --env NOTIFICATION_CAP=<<CAP>>               | How many notifications user can create                                                                                    |
+| --env RESTRICT_ACCESS=<<ACCESS>>             | Restricted Access, so that users can be blocked (False for public Bot, True for private Bot)                              |
 
 ### docker-compose.yaml
 

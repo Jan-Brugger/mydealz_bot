@@ -1,8 +1,8 @@
 import textwrap
 
+from src.config import Config
 from src.models import DealModel, NotificationModel, UserModel
 from src.telegram.constants import Commands
-from src.config import Config
 
 
 def start(user: UserModel) -> str:
@@ -114,6 +114,18 @@ def notification_not_found() -> str:
 
 def too_many_notifications() -> str:
     return f'Die Begrenzung für Suchbegriffe liegt bei: {Config.NOTIFICATION_CAP}'
+
+
+def user_is_blocked() -> str:
+    return 'Sie sind leider vom Bot blockiert worden. Tja. ¯\\_(ツ)_/¯'
+
+
+def user_successful_blocked(user_id: str) -> str:
+    return f'Der User mit der ID "{user_id}" wurde erfolgreich blockiert.'
+
+
+def user_successful_unblocked(user_id: str) -> str:
+    return f'Der User mit der ID "{user_id}" wurde erfolgreich entblockt.'
 
 
 def settings(user: UserModel) -> str:  # pylint: disable =unused-argument

@@ -17,7 +17,7 @@ from aiogram.utils.exceptions import ChatNotFound, Unauthorized
 
 from src.config import Config
 from src.db.tables import SQLiteUser
-from src.exceptions import NotificationNotFoundError, TooManyNotificationsError
+from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserIsBlockedError
 from src.models import DealModel, NotificationModel
 from src.telegram import keyboards, messages
 from src.telegram.register import BOT_REGISTER, CBQRegister, MsgRegister
@@ -44,10 +44,11 @@ class TelegramBot:
         @dp.errors_handler()
         async def error_handler(update: Update, error: Exception) -> bool:
 
-            if isinstance(error, (NotificationNotFoundError, TooManyNotificationsError)):
+            if isinstance(error, (NotificationNotFoundError, TooManyNotificationsError, UserIsBlockedError)):
                 error_mapping = {
                     NotificationNotFoundError: messages.notification_not_found(),
-                    TooManyNotificationsError: messages.too_many_notifications()
+                    TooManyNotificationsError: messages.too_many_notifications(),
+                    UserIsBlockedError: messages.user_is_blocked()
                 }
                 error_message = error_mapping.get(type(error), '')
                 if update.callback_query:
@@ -66,29 +67,31 @@ class TelegramBot:
 
     # pylint: disable=unused-argument
     async def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
-        message = messages.deal_msg(deal, notification)
-        keyboard = keyboards.deal_kb(notification)
+        restricted_users = await SQLiteUser().get_all_restricted_users()
 
-        try:
-            await self.bot.send_message(
-                chat_id=notification.user_id,
-                text=message,
-                parse_mode=ParseMode.HTML,
-                reply_markup=keyboard
-            )
-        except (Unauthorized, ChatNotFound):
-            logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)
-            await SQLiteUser().delete_by_id(notification.user_id)
+        if notification.user_id not in restricted_users:
+            message = messages.deal_msg(deal, notification)
+            keyboard = keyboards.deal_kb(notification)
+            try:
+                await self.bot.send_message(
+                    chat_id=notification.user_id,
+                    text=message,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=keyboard
+                )
+            except (Unauthorized, ChatNotFound):
+                logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)
+                await SQLiteUser().delete_by_id(notification.user_id)
 
-        # except TimedOut as error:
-        #     if first_try:
-        #         logging.warning('Sending message timed out, try again.')
-        #         self.send_deal(deal, notification, False)
-        #     else:
-        #         self.send_error(error)
+            # except TimedOut as error:
+            #     if first_try:
+            #         logging.warning('Sending message timed out, try again.')
+            #         self.send_deal(deal, notification, False)
+            #     else:
+            #         self.send_error(error)
 
-        except Exception as error:  # pylint: disable=broad-except
-            await self.send_error(error)
+            except Exception as error:  # pylint: disable=broad-except
+                await self.send_error(error)
 
     async def send_error(self, error: Exception, update: Optional[Update] = None) -> None:
         own_id = getenv('OWN_ID')

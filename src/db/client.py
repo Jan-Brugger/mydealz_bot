@@ -1,14 +1,18 @@
 import logging
+from os import getenv
 from sqlite3 import Row
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import aiosqlite
 from aiosqlite import Cursor
+from dotenv import load_dotenv
 
 from src.config import Config
 from src.db.constants import Columns, NColumns, Tables, UColumns
 
 _COLUMN_CONFIG = {
+    load_dotenv(): '',
+
     UColumns.USER_ID: 'INTEGER PRIMARY KEY',
     UColumns.USERNAME: 'TEXT',
     UColumns.FIRST_NAME: 'TEXT',
@@ -16,6 +20,7 @@ _COLUMN_CONFIG = {
     UColumns.SEARCH_MYDEALZ: 'BOOL DEFAULT 1',
     UColumns.SEARCH_MINDSTAR: 'BOOL DEFAULT 1',
     UColumns.SEARCH_PREISJAEGER: 'BOOL DEFAULT 1',
+    UColumns.RESTRICT_ACCESS: f'BOOL DEFAULT {getenv("RESTRICT_ACCESS")}',
     NColumns.NOTIFICATION_ID: 'INTEGER PRIMARY KEY',
     NColumns.USER_ID: 'INTEGER NOT NULL',
     NColumns.QUERY: 'TEXT',
@@ -74,7 +79,7 @@ class SQLiteClient:
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-    async def update(self, query: str, values: Optional[Tuple[Union[int, str], ...]]) -> int:
+    async def update(self, query: str, values: Optional[Tuple[Union[int, str], ...]] = None) -> int:
         return await self.__execute(query, values)  # type: ignore
 
     async def delete(self, query: str) -> None:

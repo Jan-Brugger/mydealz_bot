@@ -27,6 +27,7 @@ class UserModel(Model):
         self.__search_mydealz: bool = True
         self.__search_mindstar: bool = True
         self.__search_preisjaeger: bool = False
+        self.__restrict_access: bool = True
 
     @property
     def id(self) -> int:
@@ -91,6 +92,14 @@ class UserModel(Model):
     @search_preisjaeger.setter
     def search_preisjaeger(self, value: bool) -> None:
         self.__search_preisjaeger = value
+
+    @property
+    def restrict_access(self) -> bool:
+        return self.__restrict_access
+
+    @restrict_access.setter
+    def restrict_access(self, value: bool) -> None:
+        self.__restrict_access = value
 
 
 @dataclass

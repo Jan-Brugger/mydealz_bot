@@ -102,6 +102,7 @@ class SQLiteUser(SQLiteTable):
         user.search_mydealz = bool(row[UColumns.SEARCH_MYDEALZ])
         user.search_mindstar = bool(row[UColumns.SEARCH_MINDSTAR])
         user.search_preisjaeger = bool(row[UColumns.SEARCH_PREISJAEGER])
+        user.restrict_access = bool(row[UColumns.RESTRICT_ACCESS])
 
         return user
 
@@ -114,11 +115,31 @@ class SQLiteUser(SQLiteTable):
             UColumns.SEARCH_MYDEALZ: user.search_mydealz,
             UColumns.SEARCH_MINDSTAR: user.search_mindstar,
             UColumns.SEARCH_PREISJAEGER: user.search_preisjaeger,
+            UColumns.RESTRICT_ACCESS: user.restrict_access,
         }
         await self._upsert(update)
 
     async def get_by_id(self, user_id: int) -> Optional[UserModel]:
         return await self._fetch_by_id(user_id)  # type: ignore
+
+    async def set_restrict_access_for_user_id(self, value: int, user_id: str) -> int:
+        test = await self.update(
+            f'UPDATE {Tables.USERS} SET {UColumns.RESTRICT_ACCESS} = {value} WHERE {UColumns.USER_ID} = {user_id}'
+        )
+        return test
+
+    async def get_restrict_access_for_user_id(self, user_id: int) -> bool:
+        result = await self.fetch_one(f'SELECT * FROM {Tables.USERS} WHERE {UColumns.USER_ID} = {user_id}')
+        return bool(result.get(UColumns.RESTRICT_ACCESS, 0))
+
+    async def get_all_restricted_users(self) -> List[Union[str, int, None]]:
+        result = await self.fetch_all(
+            f'SELECT {UColumns.USER_ID} FROM {Tables.USERS} WHERE {UColumns.RESTRICT_ACCESS} = 1'
+        )
+        restricted_users = []
+        for _dict in result:
+            restricted_users.append(_dict.get(UColumns.USER_ID, ''))
+        return restricted_users
 
 
 class SQLiteNotifications(SQLiteTable):

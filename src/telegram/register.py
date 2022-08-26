@@ -44,6 +44,8 @@ BOT_REGISTER = [
     MsgRegister(Handlers.start_over, commands=Commands.START, state='*'),
     CBQRegister(Handlers.start_over, text=CallbackVars.HOME, state='*'),
     CBQRegister(Handlers.add_notification, text=CallbackVars.ADD),
+    MsgRegister(Handlers.set_restrict_access_for_user, commands=Commands.BLOCK_USER),
+    MsgRegister(Handlers.set_restrict_access_for_user, commands=Commands.UNBLOCK_USER),
     MsgRegister(Handlers.process_add_notification, regexp=QUERY_PATTERN, state=States.ADD_NOTIFICATION),
     CBQRegister(Handlers.show_notification, notifications_cb.filter(action=CallbackVars.VIEW)),
     CBQRegister(Handlers.edit_query, notifications_cb.filter(action=CallbackVars.UPDATE_QUERY), state='*'),

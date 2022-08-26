@@ -11,3 +11,8 @@ class UserNotFoundError(Exception):
 class TooManyNotificationsError(Exception):
     def __init__(self, user_id: int) -> None:
         super().__init__(f'Notification Cap reached by: {user_id}')
+
+
+class UserIsBlockedError(Exception):
+    def __init__(self, user_id: int) -> None:
+        super().__init__(f'User is blocked: {user_id}')

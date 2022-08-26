@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 class Config:
     BOT_TOKEN = ''
+    OWN_ID = ''
     LOG_LEVEL = 'INFO'
     FILE_DIR = 'files/'
     LOG_FILE = 'bot.log'
@@ -12,6 +13,7 @@ class Config:
     DATABASE = 'sqlite_v2.db'
     PARSE_INTERVAL = 60
     NOTIFICATION_CAP = 50
+    RESTRICT_ACCESS = False
 
     @classmethod
     def init(cls) -> None:
@@ -22,6 +24,7 @@ class Config:
             raise NotImplementedError('Environment-variable BOT_TOKEN is missing!')
 
         cls.BOT_TOKEN = token
+        cls.OWN_ID = getenv('OWN_ID') or cls.OWN_ID
         cls.LOG_LEVEL = getenv('LOG_LEVEL') or cls.LOG_LEVEL
         cls.FILE_DIR = (getenv('FILE_DIR') or cls.FILE_DIR).rstrip('/')
         cls.LOG_FILE = f'{cls.FILE_DIR}/{getenv("LOG_FILE") or cls.LOG_FILE}'
@@ -30,3 +33,4 @@ class Config:
         interval = getenv('PARSE_INTERVAL')
         cls.PARSE_INTERVAL = int(interval) if interval else cls.PARSE_INTERVAL
         cls.NOTIFICATION_CAP = int(getenv('NOTIFICATION_CAP') or cls.NOTIFICATION_CAP)
+        cls.RESTRICT_ACCESS = bool(getenv('RESTRICT_ACCESS')) or cls.RESTRICT_ACCESS

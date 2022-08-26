@@ -5,13 +5,13 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, ReplyKeyboardRemove, Update
 from aiogram.utils.exceptions import MessageCantBeEdited
 
+from src.config import Config
 from src.db.constants import UColumns
 from src.db.tables import SQLiteNotifications, SQLiteUser
-from src.exceptions import NotificationNotFoundError, UserNotFoundError, TooManyNotificationsError
+from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserIsBlockedError, UserNotFoundError
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
 from src.telegram.constants import Commands, States
-from src.config import Config
 
 CallbackDataType = Dict[str, Any]
 
@@ -20,6 +20,8 @@ CallbackDataType = Dict[str, Any]
 class Handlers:
     @classmethod
     async def start(cls, message: Message) -> None:
+        await cls.__check_restrict_access(message)
+
         sqlite_user = SQLiteUser()
         try:
             user = await cls.__get_user(message)
@@ -39,6 +41,8 @@ class Handlers:
     async def help(
             cls, telegram_object: Union[Message, CallbackQuery], state: FSMContext  # pylint: disable=unused-argument
     ) -> None:
+        await cls.__check_restrict_access(telegram_object)
+
         await cls.__overwrite_or_answer(
             telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object,
             messages.help_msg(),
@@ -47,11 +51,15 @@ class Handlers:
 
     @classmethod
     async def start_over(cls, telegram_object: Union[Message, CallbackQuery], state: FSMContext) -> None:
+        await cls.__check_restrict_access(telegram_object)
+
         await cls.__finish_state(state)
         await cls.start(telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object)
 
     @classmethod
     async def settings(cls, telegram_object: Union[Message, CallbackQuery], state: Optional[FSMContext] = None) -> None:
+        await cls.__check_restrict_access(telegram_object)
+
         await cls.__finish_state(state)
         user = await cls.__get_user(telegram_object)
 
@@ -63,11 +71,15 @@ class Handlers:
 
     @classmethod
     async def add_notification(cls, query: CallbackQuery) -> None:
+        await cls.__check_restrict_access(query)
+
         await States.ADD_NOTIFICATION.set()
         await cls.__overwrite_or_answer(query.message, messages.query_instructions())
 
     @classmethod
     async def process_add_notification(cls, message: Message, state: FSMContext) -> None:
+        await cls.__check_restrict_access(message)
+
         notification = await cls.__save_notification(message.text, message.chat.id)
         await state.finish()
         await cls.__overwrite_or_answer(
@@ -78,6 +90,8 @@ class Handlers:
 
     @classmethod
     async def show_notification(cls, query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+        await cls.__check_restrict_access(query)
+
         notification = await cls.__get_notification(callback_data)
         await cls.__overwrite_or_answer(
             query.message,
@@ -87,6 +101,8 @@ class Handlers:
 
     @classmethod
     async def edit_query(cls, query: CallbackQuery, callback_data: Dict[str, Any], state: FSMContext) -> None:
+        await cls.__check_restrict_access(query)
+
         await cls.__store_notification_id(state, callback_data)
         await States.EDIT_QUERY.set()
         await cls.__overwrite_or_answer(query.message, messages.query_instructions())
@@ -107,6 +123,8 @@ class Handlers:
     async def edit_min_price(
             cls, query: CallbackQuery, callback_data: Dict[str, Any], state: FSMContext
     ) -> None:
+        await cls.__check_restrict_access(query)
+
         await cls.__store_notification_id(state, callback_data)
         await States.EDIT_MIN_PRICE.set()
         await cls.__overwrite_or_answer(query.message, messages.price_instructions('Min'))
@@ -134,6 +152,8 @@ class Handlers:
     async def edit_max_price(
             cls, query: CallbackQuery, callback_data: Dict[str, Any], state: FSMContext
     ) -> None:
+        await cls.__check_restrict_access(query)
+
         await cls.__store_notification_id(state, callback_data)
         await States.EDIT_MAX_PRICE.set()
         await cls.__overwrite_or_answer(query.message, messages.price_instructions('Max'))
@@ -158,6 +178,8 @@ class Handlers:
 
     @classmethod
     async def toggle_only_hot(cls, query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+        await cls.__check_restrict_access(query)
+
         notification = await cls.__get_notification(callback_data)
         notification.search_only_hot = not notification.search_only_hot
         await SQLiteNotifications().upsert_model(notification)
@@ -166,21 +188,29 @@ class Handlers:
 
     @classmethod
     async def toggle_mydealz(cls, query: CallbackQuery) -> None:
+        await cls.__check_restrict_access(query)
+
         await SQLiteUser().toggle_field(cls.__get_user_id(query), UColumns.SEARCH_MYDEALZ)
         await cls.settings(query)
 
     @classmethod
     async def toggle_mindstar(cls, query: CallbackQuery) -> None:
+        await cls.__check_restrict_access(query)
+
         await SQLiteUser().toggle_field(cls.__get_user_id(query), UColumns.SEARCH_MINDSTAR)
         await cls.settings(query)
 
     @classmethod
     async def toggle_preisjaeger(cls, query: CallbackQuery) -> None:
+        await cls.__check_restrict_access(query)
+
         await SQLiteUser().toggle_field(cls.__get_user_id(query), UColumns.SEARCH_PREISJAEGER)
         await cls.settings(query)
 
     @classmethod
     async def delete_notification(cls, query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+        await cls.__check_restrict_access(query)
+
         notification = await cls.__get_notification(callback_data)
         await SQLiteNotifications().delete_by_id(notification.id)
 
@@ -192,6 +222,8 @@ class Handlers:
 
     @classmethod
     async def add_notification_inconclusive(cls, message: Message) -> None:
+        await cls.__check_restrict_access(message)
+
         text = message.text
         await cls.__overwrite_or_answer(
             message,
@@ -211,6 +243,8 @@ class Handlers:
 
     @classmethod
     async def cancel(cls, message: Message, state: FSMContext) -> None:
+        await cls.__check_restrict_access(message)
+
         if not await state.get_state():
             return
         try:
@@ -313,3 +347,27 @@ class Handlers:
     async def __finish_state(cls, state: Optional[FSMContext]) -> None:
         if state and await state.get_state():
             await state.finish()
+
+    @classmethod
+    async def set_restrict_access_for_user(cls, source: Union[Message, CallbackQuery]) -> None:
+        if Config.OWN_ID == str(cls.__get_user_id(source)):
+            value = 1 if '/block' in source.text else 0
+            user_id = source.text.split(' ')[1]
+
+            if value == 1:
+                message = messages.user_successful_blocked(user_id)
+            else:
+                message = messages.user_successful_unblocked(user_id)
+
+            if user_id.isdigit():
+                await SQLiteUser().set_restrict_access_for_user_id(value, user_id)
+                await cls.__overwrite_or_answer(source, message)
+
+    @classmethod
+    async def __check_restrict_access(cls, source: Union[Message, CallbackQuery]) -> None:
+        user_id = cls.__get_user_id(source)
+
+        is_blocked = await SQLiteUser().get_restrict_access_for_user_id(user_id)
+
+        if is_blocked:
+            raise UserIsBlockedError(user_id)
