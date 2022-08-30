@@ -1,40 +1,12 @@
 import logging
-from os import getenv
 from sqlite3 import Row
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import aiosqlite
 from aiosqlite import Cursor
-from dotenv import load_dotenv
 
 from src.config import Config
 from src.db.constants import Columns, NColumns, Tables, UColumns
-
-_COLUMN_CONFIG = {
-    load_dotenv(): '',
-
-    UColumns.USER_ID: 'INTEGER PRIMARY KEY',
-    UColumns.USERNAME: 'TEXT',
-    UColumns.FIRST_NAME: 'TEXT',
-    UColumns.LAST_NAME: 'TEXT',
-    UColumns.SEARCH_MYDEALZ: 'BOOL DEFAULT 1',
-    UColumns.SEARCH_MINDSTAR: 'BOOL DEFAULT 1',
-    UColumns.SEARCH_PREISJAEGER: 'BOOL DEFAULT 1',
-    UColumns.RESTRICT_ACCESS: f'BOOL DEFAULT {getenv("RESTRICT_ACCESS")}',
-    NColumns.NOTIFICATION_ID: 'INTEGER PRIMARY KEY',
-    NColumns.USER_ID: 'INTEGER NOT NULL',
-    NColumns.QUERY: 'TEXT',
-    NColumns.MIN_PRICE: 'INTEGER',
-    NColumns.MAX_PRICE: 'INTEGER',
-    NColumns.ONLY_HOT: 'BOOL DEFAULT 0',
-}
-
-_ADDITIONAL_COLUMN_CONFIG: Dict[Columns, str] = {
-    NColumns.USER_ID: (
-        f'FOREIGN KEY ({NColumns.USER_ID}) REFERENCES {Tables.USERS} ({UColumns.USER_ID}) '
-        f'ON UPDATE CASCADE ON DELETE CASCADE'
-    )
-}
 
 RowType = Dict[Union[UColumns, NColumns], Optional[Union[str, int]]]
 
@@ -99,16 +71,17 @@ class SQLiteClient:
         all_fields_query: List[str] = []
         additional_column_config: List[str] = []
         for field in fields:
-            all_fields_query.append(f'{field} {_COLUMN_CONFIG[field]}')
+            all_fields_query.append(f'{field} {SQLiteClient.__get_column_config().get(field, "")}')
 
-            if field in _ADDITIONAL_COLUMN_CONFIG:
-                additional_column_config.append(_ADDITIONAL_COLUMN_CONFIG[field])
+            if field in SQLiteClient.__get_additional_column_config():
+                additional_column_config.append(SQLiteClient.__get_additional_column_config().get(field, ''))
 
         query = f'{", ".join(all_fields_query)}, {",".join(additional_column_config)}'.rstrip(', ')
         await self.__execute(f'CREATE TABLE IF NOT EXISTS {table_name} ({query});')
 
     async def add_column(self, table_name: Tables, column: Columns) -> None:
-        await self.__execute(f'ALTER TABLE {table_name} ADD {column} {_COLUMN_CONFIG[column]}')
+        await self.__execute(f'ALTER TABLE {table_name} ADD {column} \
+            {SQLiteClient.__get_column_config().get(column, "")}')
 
     async def delete_column(self, table_name: Tables, column: str) -> None:
         await self.__execute(f'ALTER TABLE {table_name} DROP {column}')
@@ -126,3 +99,31 @@ class SQLiteClient:
         )
 
         return int(result.get('counter', 0))
+
+    @staticmethod
+    def __get_column_config() -> dict[Columns, str]:
+        return {
+            UColumns.USER_ID: 'INTEGER PRIMARY KEY',
+            UColumns.USERNAME: 'TEXT',
+            UColumns.FIRST_NAME: 'TEXT',
+            UColumns.LAST_NAME: 'TEXT',
+            UColumns.SEARCH_MYDEALZ: 'BOOL DEFAULT 1',
+            UColumns.SEARCH_MINDSTAR: 'BOOL DEFAULT 1',
+            UColumns.SEARCH_PREISJAEGER: 'BOOL DEFAULT 1',
+            UColumns.RESTRICT_ACCESS: f'BOOL DEFAULT {Config.RESTRICT_ACCESS}',
+            NColumns.NOTIFICATION_ID: 'INTEGER PRIMARY KEY',
+            NColumns.USER_ID: 'INTEGER NOT NULL',
+            NColumns.QUERY: 'TEXT',
+            NColumns.MIN_PRICE: 'INTEGER',
+            NColumns.MAX_PRICE: 'INTEGER',
+            NColumns.ONLY_HOT: 'BOOL DEFAULT 0',
+        }
+
+    @staticmethod
+    def __get_additional_column_config() -> dict[Columns, str]:
+        return {
+            NColumns.USER_ID: (
+                f'FOREIGN KEY ({NColumns.USER_ID}) REFERENCES {Tables.USERS} ({UColumns.USER_ID}) '
+                f'ON UPDATE CASCADE ON DELETE CASCADE'
+            )
+        }
