@@ -123,10 +123,9 @@ class SQLiteUser(SQLiteTable):
         return await self._fetch_by_id(user_id)  # type: ignore
 
     async def set_restrict_access_for_user_id(self, value: int, user_id: str) -> int:
-        test = await self.update(
+        return await self.update(
             f'UPDATE {Tables.USERS} SET {UColumns.RESTRICT_ACCESS} = {value} WHERE {UColumns.USER_ID} = {user_id}'
         )
-        return test
 
     async def get_restrict_access_for_user_id(self, user_id: int) -> bool:
         result = await self.fetch_one(f'SELECT * FROM {Tables.USERS} WHERE {UColumns.USER_ID} = {user_id}')
