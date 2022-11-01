@@ -102,6 +102,7 @@ class NotificationModel(Model):
         self.__min_price: int = 0
         self.__max_price: int = 0
         self.__search_only_hot: bool = False
+        self.__search_description: bool = False
         self.__search_mydealz: bool = True
         self.__search_mindstar: bool = True
         self.__search_preisjaeger: bool = True
@@ -182,6 +183,14 @@ class NotificationModel(Model):
     @search_only_hot.setter
     def search_only_hot(self, value: bool) -> None:
         self.__search_only_hot = value
+
+    @property
+    def search_description(self) -> bool:
+        return self.__search_description
+
+    @search_description.setter
+    def search_description(self, value: bool) -> None:
+        self.__search_description = value
 
     @property
     def search_mydealz(self) -> bool:

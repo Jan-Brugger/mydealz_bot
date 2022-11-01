@@ -3,7 +3,7 @@ from enum import Enum
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.callback_data import CallbackData
 
-ALLOWED_CHARACTERS = r'\w+\!\[\]'
+ALLOWED_CHARACTERS = r'\w\!\[\]+-'
 ALLOWED_SEPARATORS = r' &,'
 
 
@@ -21,6 +21,7 @@ class CallbackVars(StrEnum):
     UPDATE_MIN_PRICE = 'update_min_price'
     UPDATE_MAX_PRICE = 'update_max_price'
     TOGGLE_ONLY_HOT = 'toggle_only_hot'
+    TOGGLE_SEARCH_DESCR = 'toggle_search_description'
     TOGGLE_MYDEALZ = 'toggle_mydealz'
     TOGGLE_MINDSTAR = 'toggle_mindstar'
     TOGGLE_PREISJAEGER = 'toggle_preisjaeger'

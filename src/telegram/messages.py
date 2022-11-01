@@ -71,7 +71,8 @@ def notification_overview(notification: NotificationModel) -> str:
         f'Minimaler Preis: {str(notification.min_price) + " €" if notification.min_price else "-"}\n'
         f'Maximaler Preis: {str(notification.max_price) + " €" if notification.max_price else "-"}\n'
         f'Reichweite: {search_range}\n'
-        f'Mindstar durchsuchen: {"Ja" if notification.search_mindstar else "Nein"}'
+        f'Mindstar durchsuchen: {"Ja" if notification.search_mindstar else "Nein"}\n'
+        f'Auch im Deal-Text suchen: {"Ja" if notification.search_description else "Nein"}'
     )
 
 
@@ -96,7 +97,7 @@ def notification_deleted(notification: NotificationModel) -> str:
 
 
 def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
-    message = f'Neuer Deal für "{notification.query}":\n<a href="{deal.link}">{deal.title}</a>'
+    message = f'Neuer Deal für "{notification.query}":\n{deal.title}\n<a href="{deal.link}">{deal.link}</a>'
 
     if deal.price.amount:
         message += f'\n Preis: {deal.price.amount:.2f} {deal.price.currency}'

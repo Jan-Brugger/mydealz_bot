@@ -55,6 +55,7 @@ BOT_REGISTER = [
     MsgRegister(Handlers.process_edit_max_price, regexp=PRICE_PATTERN, state=States.EDIT_MAX_PRICE),
     MsgRegister(Handlers.process_edit_max_price, commands=Commands.REMOVE, state=States.EDIT_MAX_PRICE),
     CBQRegister(Handlers.toggle_only_hot, notifications_cb.filter(action=CallbackVars.TOGGLE_ONLY_HOT)),
+    CBQRegister(Handlers.toggle_search_description, notifications_cb.filter(action=CallbackVars.TOGGLE_SEARCH_DESCR)),
     CBQRegister(Handlers.toggle_mydealz, text=CallbackVars.TOGGLE_MYDEALZ),
     CBQRegister(Handlers.toggle_mindstar, text=CallbackVars.TOGGLE_MINDSTAR),
     CBQRegister(Handlers.toggle_preisjaeger, text=CallbackVars.TOGGLE_PREISJAEGER),

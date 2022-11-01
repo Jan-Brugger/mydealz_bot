@@ -47,14 +47,20 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
         )
     )
 
-    hot_toggle_text = '🆕 Alle Deals senden' if notification.search_only_hot else '🌶️ Nur heiße Deals senden'
+    hot_toggle_text = '🌶️ Nur heiße Deals' if notification.search_only_hot else '🆕 Alle Deals'
 
     keyboard.row(
         InlineKeyboardButton(hot_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_ONLY_HOT)),
         InlineKeyboardButton('➕ Suchbegriff hinzufügen', callback_data=CallbackVars.ADD),
     )
 
+    search_descr_toggle_text = \
+        '🔍 Titel & Beschreibung' if notification.search_description else '🧐 Nur Titel'
+
     keyboard.row(
+        InlineKeyboardButton(
+            search_descr_toggle_text, callback_data=notification.get_callback(CallbackVars.TOGGLE_SEARCH_DESCR)
+        ),
         InlineKeyboardButton('🏠 Home', callback_data=CallbackVars.HOME)
     )
 

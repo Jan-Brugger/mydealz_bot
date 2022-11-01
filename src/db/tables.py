@@ -137,6 +137,7 @@ class SQLiteNotifications(SQLiteTable):
         notification.min_price = int(row[NColumns.MIN_PRICE] or 0)
         notification.max_price = int(row[NColumns.MAX_PRICE] or 0)
         notification.search_only_hot = bool(row[NColumns.ONLY_HOT])
+        notification.search_description = bool(row[NColumns.SEARCH_DESCRIPTION])
         notification.search_mydealz = bool(row[UColumns.SEARCH_MYDEALZ])
         notification.search_mindstar = bool(row[UColumns.SEARCH_MINDSTAR])
         notification.search_preisjaeger = bool(row[UColumns.SEARCH_PREISJAEGER])
@@ -150,6 +151,7 @@ class SQLiteNotifications(SQLiteTable):
             NColumns.MIN_PRICE: notification.min_price,
             NColumns.MAX_PRICE: notification.max_price,
             NColumns.ONLY_HOT: notification.search_only_hot,
+            NColumns.SEARCH_DESCRIPTION: notification.search_description,
         }
 
         return await self._upsert(update, notification.id)

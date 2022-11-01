@@ -26,4 +26,5 @@ class NColumns(Columns):
     MIN_PRICE = 'min_price'
     MAX_PRICE = 'max_price'
     ONLY_HOT = 'hot_only'
+    SEARCH_DESCRIPTION = 'search_descr'
     USER_ID = 'user_id'

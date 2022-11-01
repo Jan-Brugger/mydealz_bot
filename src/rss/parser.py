@@ -64,9 +64,11 @@ class Parser:
         logging.debug('search for query (%s) in title (%s)', notification.query, deal.title)
 
         title = ' '.join(deal.title.lower().split())
+        title_and_description = title + ' '.join(deal.description.lower().split())
         for query in notification.queries:
-            if all(x in title for x in query[0] if x) and not any(x in title for x in query[1] if x):
-                logging.info('searched query (%s) found in title (%s) - send deal', notification.query, deal.title)
+            search_in = title_and_description if notification.search_description else title
+            if all(x in search_in for x in query[0] if x) and not any(x in search_in for x in query[1] if x):
+                logging.info('searched query (%s) found in (%s) - send deal', notification.query, search_in)
 
                 return True
 

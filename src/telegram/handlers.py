@@ -5,13 +5,13 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, ReplyKeyboardRemove, Update
 from aiogram.utils.exceptions import MessageCantBeEdited
 
+from src.config import Config
 from src.db.constants import UColumns
 from src.db.tables import SQLiteNotifications, SQLiteUser
-from src.exceptions import NotificationNotFoundError, UserNotFoundError, TooManyNotificationsError
+from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserNotFoundError
 from src.models import NotificationModel, UserModel
 from src.telegram import keyboards, messages
 from src.telegram.constants import Commands, States
-from src.config import Config
 
 CallbackDataType = Dict[str, Any]
 
@@ -160,6 +160,14 @@ class Handlers:
     async def toggle_only_hot(cls, query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
         notification = await cls.__get_notification(callback_data)
         notification.search_only_hot = not notification.search_only_hot
+        await SQLiteNotifications().upsert_model(notification)
+
+        await cls.show_notification(query, callback_data)
+
+    @classmethod
+    async def toggle_search_description(cls, query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+        notification = await cls.__get_notification(callback_data)
+        notification.search_description = not notification.search_description
         await SQLiteNotifications().upsert_model(notification)
 
         await cls.show_notification(query, callback_data)

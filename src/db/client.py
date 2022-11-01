@@ -22,6 +22,7 @@ _COLUMN_CONFIG = {
     NColumns.MIN_PRICE: 'INTEGER',
     NColumns.MAX_PRICE: 'INTEGER',
     NColumns.ONLY_HOT: 'BOOL DEFAULT 0',
+    NColumns.SEARCH_DESCRIPTION: 'BOOL DEFAULT 0',
 }
 
 _ADDITIONAL_COLUMN_CONFIG: Dict[Columns, str] = {
