@@ -67,7 +67,16 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
     return keyboard
 
 
-def deal_kb(notification: NotificationModel) -> InlineKeyboardMarkup:
+def deal_kb(deal_link: str) -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup()
+    keyboard.row(
+        InlineKeyboardButton('Zum Deal', url=deal_link),
+    )
+
+    return keyboard
+
+
+def edit_deal_kb(notification: NotificationModel) -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup()
     keyboard.row(
         InlineKeyboardButton('🗒️ Übersicht', callback_data=notification.get_callback(CallbackVars.VIEW)),
