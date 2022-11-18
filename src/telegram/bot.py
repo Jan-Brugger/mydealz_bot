@@ -66,15 +66,18 @@ class TelegramBot:
 
     # pylint: disable=unused-argument
     async def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
-        message = messages.deal_msg(deal, notification)
-        keyboard = keyboards.deal_kb(notification)
-
         try:
             await self.bot.send_message(
                 chat_id=notification.user_id,
-                text=message,
+                text=messages.deal_msg(deal, notification),
                 parse_mode=ParseMode.HTML,
-                reply_markup=keyboard
+                reply_markup=keyboards.deal_kb(deal.link)
+            )
+            await self.bot.send_message(
+                chat_id=notification.user_id,
+                text=messages.edit_deal_msg(),
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboards.edit_deal_kb(notification)
             )
         except (Unauthorized, ChatNotFound):
             logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)

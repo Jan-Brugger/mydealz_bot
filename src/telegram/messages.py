@@ -1,8 +1,8 @@
 import textwrap
 
+from src.config import Config
 from src.models import DealModel, NotificationModel, UserModel
 from src.telegram.constants import Commands
-from src.config import Config
 
 
 def start(user: UserModel) -> str:
@@ -103,6 +103,10 @@ def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
         message += f'\n Preis: {deal.price.amount:.2f} {deal.price.currency}'
 
     return message
+
+
+def edit_deal_msg() -> str:
+    return 'Möchtest Du diese Benachrichtigung löschen?'
 
 
 def add_notification_inconclusive(text: str) -> str:
