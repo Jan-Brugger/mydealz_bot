@@ -2,7 +2,7 @@
 
 ### Requirements
 
-* Python 3.9.7
+* Python 3.10.8
 * Docker
 
 ### Installing
