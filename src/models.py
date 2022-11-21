@@ -288,10 +288,10 @@ class DealModel(Model):
 
     @property
     def published(self) -> datetime:
-        if not datetime:
+        if not self.__published:
             raise NotImplementedError('Deal has no published-datetime')
 
-        return self.__published  # type:ignore
+        return self.__published
 
     @published.setter
     def published(self, value: datetime) -> None:

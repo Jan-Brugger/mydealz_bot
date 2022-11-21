@@ -7,25 +7,35 @@ import traceback
 from os import getenv
 from pickle import UnpicklingError
 from time import sleep
-from typing import Optional
+from typing import Any, Dict, Optional, Union
 
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.files import PickleStorage
-from aiogram.types import ParseMode, Update
+from aiogram.dispatcher import FSMContext
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, ParseMode, ReplyKeyboardRemove, Update
 from aiogram.utils import executor
-from aiogram.utils.exceptions import ChatNotFound, Unauthorized
+from aiogram.utils.exceptions import ChatNotFound, MessageCantBeEdited, Unauthorized
 
 from src.config import Config
-from src.db.tables import SQLiteUser
-from src.exceptions import NotificationNotFoundError, TooManyNotificationsError
-from src.models import DealModel, NotificationModel
+from src.db.constants import UColumns
+from src.db.tables import SQLiteNotifications, SQLiteUser
+from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserNotFoundError
+from src.models import DealModel, NotificationModel, UserModel
 from src.telegram import keyboards, messages
-from src.telegram.register import BOT_REGISTER, CBQRegister, MsgRegister
+from src.telegram.constants import ALLOWED_CHARACTERS, ALLOWED_SEPARATORS, CallbackVars, Commands, States, \
+    add_notification_cb, notifications_cb
+
+CallbackDataType = Dict[str, Any]
+QUERY_PATTERN = rf'^[{ALLOWED_SEPARATORS}{ALLOWED_CHARACTERS}]+$'
+QUERY_PATTERN_LIMITED_CHARS = rf'^[{ALLOWED_SEPARATORS}{ALLOWED_CHARACTERS}]{{1,58}}$'
+PRICE_PATTERN = r'^\d+([,\.]\d{1,2})?$'
 
 
+# pylint: disable=too-many-locals,too-many-statements
 class TelegramBot:
     def __init__(self) -> None:
         self.bot = Bot(token=Config.BOT_TOKEN, parse_mode=ParseMode.HTML)
+
         try:
             storage = PickleStorage(path=Config.CHAT_FILE)
         except UnpicklingError:
@@ -33,15 +43,242 @@ class TelegramBot:
             sleep(3)
             storage = PickleStorage(path=Config.CHAT_FILE)
 
-        dp = Dispatcher(self.bot, storage=storage)
+        dispatcher = Dispatcher(bot=self.bot, storage=storage)
 
-        for handler in BOT_REGISTER:
-            if isinstance(handler, MsgRegister):
-                dp.register_message_handler(handler.function, *handler.args, **handler.kwargs)
-            elif isinstance(handler, CBQRegister):
-                dp.register_callback_query_handler(handler.function, *handler.args, **handler.kwargs)
+        @dispatcher.message_handler(commands=Commands.START)
+        async def start(message: Message) -> None:
+            sqlite_user = SQLiteUser()
+            try:
+                user = await __get_user(message)
+            except UserNotFoundError:
+                logging.info(
+                    'User started the bot first time.\nUser: %s\nLocale:%s', message.from_user, message.from_user.locale
+                )
+                user = UserModel().parse_telegram_chat(message.chat)
+                logging.info('added user: %s', user.__dict__)
+                await sqlite_user.upsert_model(user)
 
-        @dp.errors_handler()
+            notifications = await SQLiteNotifications().get_by_user_id(user.id)
+
+            await __overwrite_or_answer(message, messages.start(user), keyboards.start(notifications))
+
+        @dispatcher.message_handler(commands=Commands.HELP, state='*')
+        async def help_handler(
+                telegram_object: Union[Message, CallbackQuery], state: FSMContext  # pylint: disable=unused-argument
+        ) -> None:
+            await __overwrite_or_answer(
+                telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object,
+                messages.help_msg(),
+                reply_markup=keyboards.home_button()
+            )
+
+        @dispatcher.message_handler(commands=Commands.START, state='*')
+        @dispatcher.callback_query_handler(text=CallbackVars.HOME, state='*')
+        async def start_over(telegram_object: Union[Message, CallbackQuery], state: FSMContext) -> None:
+            await __finish_state(state)
+            await start(telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object)
+
+        @dispatcher.message_handler(commands=Commands.SETTINGS, state='*')
+        async def settings(telegram_object: Union[Message, CallbackQuery], state: Optional[FSMContext] = None) -> None:
+            await __finish_state(state)
+            user = await __get_user(telegram_object)
+
+            await __overwrite_or_answer(
+                telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object,
+                messages.settings(user),
+                reply_markup=keyboards.settings(user)
+            )
+
+        @dispatcher.callback_query_handler(text=CallbackVars.ADD)
+        async def add_notification(query: CallbackQuery) -> None:
+            await States.ADD_NOTIFICATION.set()
+            await __overwrite_or_answer(query.message, messages.query_instructions())
+
+        @dispatcher.message_handler(regexp=QUERY_PATTERN, state=States.ADD_NOTIFICATION)
+        async def process_add_notification(message: Message, state: FSMContext) -> None:
+            notification = await __save_notification(message.text, message.chat.id)
+            await state.finish()
+            await __overwrite_or_answer(
+                message,
+                messages.notification_added(notification),
+                reply_markup=keyboards.notification_commands(notification)
+            )
+
+        @dispatcher.callback_query_handler(notifications_cb.filter(action=CallbackVars.VIEW))
+        async def show_notification(query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+            notification = await __get_notification(callback_data)
+            await __overwrite_or_answer(
+                query.message,
+                messages.notification_overview(notification),
+                reply_markup=keyboards.notification_commands(notification)
+            )
+
+        @dispatcher.callback_query_handler(notifications_cb.filter(action=CallbackVars.UPDATE_QUERY), state='*')
+        async def edit_query(query: CallbackQuery, callback_data: Dict[str, Any], state: FSMContext) -> None:
+            await __store_notification_id(state, callback_data)
+            await States.EDIT_QUERY.set()
+            await __overwrite_or_answer(query.message, messages.query_instructions())
+
+        @dispatcher.message_handler(regexp=QUERY_PATTERN, state=States.EDIT_QUERY)
+        async def process_edit_query(message: Message, state: FSMContext) -> None:
+            notification = await __get_notification(state)
+            notification.query = message.text
+            await SQLiteNotifications().upsert_model(notification)
+
+            await __finish_state(state)
+            await __overwrite_or_answer(
+                message,
+                messages.query_updated(notification),
+                reply_markup=keyboards.notification_commands(notification)
+            )
+
+        @dispatcher.callback_query_handler(notifications_cb.filter(action=CallbackVars.UPDATE_MIN_PRICE), state='*')
+        async def edit_min_price(
+                query: CallbackQuery, callback_data: Dict[str, Any], state: FSMContext
+        ) -> None:
+            await __store_notification_id(state, callback_data)
+            await States.EDIT_MIN_PRICE.set()
+            await __overwrite_or_answer(query.message, messages.price_instructions('Min'))
+
+        @dispatcher.message_handler(regexp=PRICE_PATTERN, state=States.EDIT_MIN_PRICE)
+        @dispatcher.message_handler(commands=Commands.REMOVE, state=States.EDIT_MIN_PRICE)
+        async def process_edit_min_price(message: Message, state: FSMContext) -> None:
+            price = message.text
+            if price == f'/{Commands.REMOVE}':
+                price = '0'
+
+            notification = await __get_notification(state)
+
+            notification.min_price = round(float(price.replace(',', '.')))
+            await SQLiteNotifications().upsert_model(notification)
+
+            await __overwrite_or_answer(
+                message,
+                messages.query_updated(notification),
+                keyboards.notification_commands(notification)
+            )
+
+            await state.finish()
+
+        @dispatcher.callback_query_handler(notifications_cb.filter(action=CallbackVars.UPDATE_MAX_PRICE), state='*')
+        async def edit_max_price(
+                query: CallbackQuery, callback_data: Dict[str, Any], state: FSMContext
+        ) -> None:
+            await __store_notification_id(state, callback_data)
+            await States.EDIT_MAX_PRICE.set()
+            await __overwrite_or_answer(query.message, messages.price_instructions('Max'))
+
+        @dispatcher.message_handler(regexp=PRICE_PATTERN, state=States.EDIT_MAX_PRICE)
+        @dispatcher.message_handler(commands=Commands.REMOVE, state=States.EDIT_MAX_PRICE)
+        async def process_edit_max_price(message: Message, state: FSMContext) -> None:
+            price = message.text
+            if price == f'/{Commands.REMOVE}':
+                price = '0'
+
+            notification = await __get_notification(state)
+            notification.max_price = round(float(price.replace(',', '.')))
+            await SQLiteNotifications().upsert_model(notification)
+
+            await __overwrite_or_answer(
+                message,
+                messages.query_updated(notification),
+                keyboards.notification_commands(notification)
+            )
+
+            await state.finish()
+
+        @dispatcher.callback_query_handler(notifications_cb.filter(action=CallbackVars.TOGGLE_ONLY_HOT))
+        async def toggle_only_hot(query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+            notification = await __get_notification(callback_data)
+            notification.search_only_hot = not notification.search_only_hot
+            await SQLiteNotifications().upsert_model(notification)
+
+            await show_notification(query, callback_data)
+
+        @dispatcher.callback_query_handler(notifications_cb.filter(action=CallbackVars.TOGGLE_SEARCH_DESCR))
+        async def toggle_search_description(query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+            notification = await __get_notification(callback_data)
+            notification.search_description = not notification.search_description
+            await SQLiteNotifications().upsert_model(notification)
+
+            await show_notification(query, callback_data)
+
+        @dispatcher.callback_query_handler(text=CallbackVars.TOGGLE_MYDEALZ)
+        async def toggle_mydealz(query: CallbackQuery) -> None:
+            await SQLiteUser().toggle_field(__get_user_id(query), UColumns.SEARCH_MYDEALZ)
+            await settings(query)
+
+        @dispatcher.callback_query_handler(text=CallbackVars.TOGGLE_MINDSTAR)
+        async def toggle_mindstar(query: CallbackQuery) -> None:
+            await SQLiteUser().toggle_field(__get_user_id(query), UColumns.SEARCH_MINDSTAR)
+            await settings(query)
+
+        @dispatcher.callback_query_handler(text=CallbackVars.TOGGLE_PREISJAEGER)
+        async def toggle_preisjaeger(query: CallbackQuery) -> None:
+            await SQLiteUser().toggle_field(__get_user_id(query), UColumns.SEARCH_PREISJAEGER)
+            await settings(query)
+
+        @dispatcher.callback_query_handler(notifications_cb.filter(action=CallbackVars.DELETE))
+        async def delete_notification(query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+            notification = await __get_notification(callback_data)
+            await SQLiteNotifications().delete_by_id(notification.id)
+
+            await __overwrite_or_answer(
+                query.message,
+                messages.notification_deleted(notification),
+                reply_markup=keyboards.home_button()
+            )
+
+        @dispatcher.message_handler(regexp=QUERY_PATTERN_LIMITED_CHARS)
+        async def add_notification_inconclusive(message: Message) -> None:
+            text = message.text
+            await __overwrite_or_answer(
+                message,
+                messages.add_notification_inconclusive(text),
+                reply_markup=keyboards.add_notification_inconclusive(text)
+            )
+
+        @dispatcher.callback_query_handler(add_notification_cb.filter())
+        async def process_add_notification_inconclusive(query: CallbackQuery, callback_data: Dict[str, Any]) -> None:
+            notification = await __save_notification(callback_data.get('query', ''), query.message.chat.id)
+
+            await __overwrite_or_answer(
+                query.message,
+                messages.notification_added(notification),
+                reply_markup=keyboards.notification_commands(notification)
+            )
+
+        @dispatcher.message_handler(commands=Commands.CANCEL, state='*')
+        async def cancel(message: Message, state: FSMContext) -> None:
+            if not await state.get_state():
+                return
+            try:
+                notification = await __get_notification(state)
+
+            except NotificationNotFoundError:
+                await start_over(message, state)
+            else:
+                await __overwrite_or_answer(
+                    message,
+                    messages.notification_overview(notification),
+                    reply_markup=keyboards.notification_commands(notification)
+                )
+
+            await __finish_state(state)
+
+        @dispatcher.message_handler(state=States.ADD_NOTIFICATION)
+        @dispatcher.message_handler(state=States.EDIT_QUERY)
+        async def invalid_query(message: Message) -> None:
+            await __overwrite_or_answer(message, messages.invalid_query())
+
+        @dispatcher.message_handler(state=States.EDIT_MIN_PRICE)
+        @dispatcher.message_handler(state=States.EDIT_MAX_PRICE)
+        async def invalid_price(message: Message, state: FSMContext) -> None:
+            price_type = 'Min' if await state.get_state() == States.EDIT_MIN_PRICE else 'Max'
+
+            await __overwrite_or_answer(message, messages.invalid_price(price_type))
+
+        @dispatcher.errors_handler()
         async def error_handler(update: Update, error: Exception) -> bool:
 
             if isinstance(error, (NotificationNotFoundError, TooManyNotificationsError)):
@@ -62,7 +299,69 @@ class TelegramBot:
 
             return True
 
-        self.dp = dp
+        async def __overwrite_or_answer(
+                message: Message, text: str, reply_markup: Optional[InlineKeyboardMarkup] = None
+        ) -> None:
+            try:
+                await message.edit_text(text, reply_markup=reply_markup, disable_web_page_preview=True)
+            except MessageCantBeEdited:
+                await message.answer(
+                    text, reply_markup=reply_markup or ReplyKeyboardRemove(), disable_web_page_preview=True
+                )
+
+        async def __save_notification(query: str, chat_id: int) -> NotificationModel:
+            amount_notifications = await SQLiteNotifications().count_notifications_by_user_id(chat_id)
+
+            if amount_notifications >= Config.NOTIFICATION_CAP:
+                raise TooManyNotificationsError(chat_id)
+
+            notification = NotificationModel()
+            notification.user_id = chat_id
+            notification.query = query
+            notification.id = await SQLiteNotifications().upsert_model(notification)
+
+            logging.info('user %s added notification %s (%s)', notification.user_id, notification.id,
+                         notification.query)
+
+            return notification
+
+        async def __store_notification_id(state: FSMContext, callback_data: CallbackDataType) -> None:
+            async with state.proxy() as data:
+                data['notification_id'] = callback_data['notification_id']
+
+        async def __get_notification(source: Union[CallbackDataType, FSMContext]) -> NotificationModel:
+            if isinstance(source, FSMContext):
+                async with source.proxy() as data:
+                    notification_id = data.get('notification_id', 0)
+            else:
+                notification_id = source.get('notification_id', 0)
+
+            notification = await SQLiteNotifications().get_by_id(notification_id)
+            if not notification:
+                raise NotificationNotFoundError(notification_id)
+
+            return notification
+
+        def __get_user_id(source: Union[Message, CallbackQuery]) -> int:
+            if isinstance(source, Message):
+                return int(source.chat.id)
+
+            return int(source.message.chat.id)
+
+        async def __get_user(source: Union[Message, CallbackQuery]) -> UserModel:
+            user_id = __get_user_id(source)
+            user = await SQLiteUser().get_by_id(user_id)
+
+            if not user:
+                raise UserNotFoundError(user_id)
+
+            return user
+
+        async def __finish_state(state: Optional[FSMContext]) -> None:
+            if state and await state.get_state():
+                await state.finish()
+
+        self.dispatcher = dispatcher
 
     # pylint: disable=unused-argument
     async def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
@@ -121,4 +420,4 @@ class TelegramBot:
     def run(self) -> None:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        executor.start_polling(self.dp, loop=loop, on_shutdown=self.shutdown)
+        executor.start_polling(self.dispatcher, loop=loop, on_shutdown=self.shutdown)
