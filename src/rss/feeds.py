@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import isfile
-from typing import List, Optional
 
 import requests
 from feedparser import FeedParserDict, parse
@@ -14,7 +15,7 @@ from src.models import DealModel, NotificationModel
 
 
 class AbstractFeed(ABC):
-    _last_update: Optional[datetime] = None
+    _last_update: datetime | None = None
     _feed = ''
 
     @classmethod
@@ -56,7 +57,7 @@ class AbstractFeed(ABC):
         pass
 
     @classmethod
-    def parse_feed(cls, feed_content: bytes) -> List[DealModel]:
+    def parse_feed(cls, feed_content: bytes) -> list[DealModel]:
         feed = parse(feed_content)
         last_update_ts = cls.get_last_update()
         last_update = datetime.min
@@ -76,7 +77,7 @@ class AbstractFeed(ABC):
         return deals
 
     @classmethod
-    async def get_new_deals(cls) -> List[DealModel]:
+    async def get_new_deals(cls) -> list[DealModel]:
         try:
             response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=30)
             return cls.parse_feed(response.content)

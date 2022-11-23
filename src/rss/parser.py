@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from asyncio import create_task
-from typing import List, Type
 
 from src.db.tables import SQLiteNotifications
 from src.models import DealModel, NotificationModel
@@ -16,11 +15,11 @@ class Parser:
     async def run(self) -> None:
         try:
             await self.parse()
-        except Exception as error:  # pylint: disable=broad-except
+        except Exception as error:
             await self.bot.send_error(error)
 
     async def parse(self) -> None:
-        feeds: List[Type[AbstractFeed]] = AbstractFeed.__subclasses__()
+        feeds: list[type[AbstractFeed]] = AbstractFeed.__subclasses__()
 
         deals_list = await asyncio.gather(
             *[create_task(feed.get_new_deals()) for feed in feeds], return_exceptions=False

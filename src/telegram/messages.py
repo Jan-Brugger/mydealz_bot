@@ -121,7 +121,7 @@ def too_many_notifications() -> str:
     return f'Die Begrenzung für Suchbegriffe liegt bei: {Config.NOTIFICATION_CAP}'
 
 
-def settings(user: UserModel) -> str:  # pylint: disable =unused-argument
+def settings(user: UserModel) -> str:
     pages = []
     if user.search_mydealz:
         pages.append('mydealz.de')

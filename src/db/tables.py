@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, List, Optional, Union
+from collections.abc import Iterable
+from typing import Any
 
 from src.db.client import RowType, SQLiteClient
 from src.db.constants import Columns, NColumns, Tables, UColumns
@@ -15,7 +18,7 @@ class SQLiteTable(SQLiteClient, ABC):
 
     @property
     @abstractmethod
-    def _columns(self) -> List[Columns]:
+    def _columns(self) -> list[Columns]:
         raise NotImplementedError
 
     @property
@@ -27,10 +30,10 @@ class SQLiteTable(SQLiteClient, ABC):
     def _parse_row(self, row: RowType) -> Model:
         raise NotImplementedError
 
-    def _parse_rows(self, rows: Iterable[RowType]) -> List[Model]:
+    def _parse_rows(self, rows: Iterable[RowType]) -> list[Model]:
         return [self._parse_row(row) for row in rows]
 
-    async def _upsert(self, update: Dict[str, Any], sqlite_id: int = 0) -> int:
+    async def _upsert(self, update: dict[str, Any], sqlite_id: int = 0) -> int:
         if sqlite_id:
             update.update({'ROWID': sqlite_id})
 
@@ -42,7 +45,7 @@ class SQLiteTable(SQLiteClient, ABC):
             values
         )
 
-    async def _fetch_all(self, where: str = '') -> List[Model]:
+    async def _fetch_all(self, where: str = '') -> list[Model]:
         query = self._base_query
         if where:
             query += f' WHERE {where}'
@@ -50,19 +53,19 @@ class SQLiteTable(SQLiteClient, ABC):
 
         return self._parse_rows(rows)
 
-    async def _fetch_by_field(self, field: Columns, value: Union[str, int]) -> List[Model]:
+    async def _fetch_by_field(self, field: Columns, value: str | int) -> list[Model]:
         return await self._fetch_all(f'{self._table_name}.{field} == {value}')
 
-    async def _fetch_by_id(self, sqlite_id: int) -> Optional[Model]:
+    async def _fetch_by_id(self, sqlite_id: int) -> Model | None:
         where_query = f'{self._table_name}.ROWID == {sqlite_id}'
         rows = await self._fetch_all(where_query)
 
         return rows[0] if rows else None
 
-    async def delete_by_id(self, sqlite_id: Union[str, int]) -> None:
+    async def delete_by_id(self, sqlite_id: str | int) -> None:
         await self.delete(f'DELETE FROM {self._table_name} WHERE {self._table_name}.ROWID == {sqlite_id}')
 
-    async def toggle_field(self, sqlite_id: Union[str, int], field: Union[UColumns, NColumns]) -> None:
+    async def toggle_field(self, sqlite_id: str | int, field: UColumns | NColumns) -> None:
         await self.update(
             f'UPDATE {self._table_name} SET {field} = abs({field}-1) WHERE {self._table_name}.ROWID == {sqlite_id}'
             , None
@@ -106,7 +109,7 @@ class SQLiteUser(SQLiteTable):
         return user
 
     async def upsert_model(self, user: UserModel) -> None:
-        update: Dict[str, Union[str, int]] = {
+        update: dict[str, str | int] = {
             UColumns.USER_ID: user.id,
             UColumns.USERNAME: user.username,
             UColumns.FIRST_NAME: user.first_name,
@@ -117,7 +120,7 @@ class SQLiteUser(SQLiteTable):
         }
         await self._upsert(update)
 
-    async def get_by_id(self, user_id: int) -> Optional[UserModel]:
+    async def get_by_id(self, user_id: int) -> UserModel | None:
         return await self._fetch_by_id(user_id)  # type: ignore
 
 
@@ -129,7 +132,7 @@ class SQLiteNotifications(SQLiteTable):
         f'INNER JOIN {Tables.USERS} ON {Tables.USERS}.{UColumns.USER_ID}={Tables.NOTIFICATIONS}.{NColumns.USER_ID}'
     )
 
-    def _parse_row(self, row: Dict[Union[NColumns, UColumns], Any]) -> NotificationModel:
+    def _parse_row(self, row: dict[NColumns | UColumns, Any]) -> NotificationModel:
         notification = NotificationModel()
         notification.id = int(row[NColumns.NOTIFICATION_ID])
         notification.user_id = int(row[NColumns.USER_ID])
@@ -145,7 +148,7 @@ class SQLiteNotifications(SQLiteTable):
         return notification
 
     async def upsert_model(self, notification: NotificationModel) -> int:
-        update: Dict[str, Union[str, int, bool]] = {
+        update: dict[str, str | int | bool] = {
             NColumns.USER_ID: notification.user_id,
             NColumns.QUERY: notification.query,
             NColumns.MIN_PRICE: notification.min_price,
@@ -156,16 +159,16 @@ class SQLiteNotifications(SQLiteTable):
 
         return await self._upsert(update, notification.id)
 
-    async def get_all(self) -> List[NotificationModel]:
+    async def get_all(self) -> list[NotificationModel]:
         return await self._fetch_all()  # type: ignore
 
-    async def get_by_id(self, sqlite_id: int) -> Optional[NotificationModel]:
+    async def get_by_id(self, sqlite_id: int) -> NotificationModel | None:
         if not sqlite_id:
             return None
 
         return await self._fetch_by_id(sqlite_id)  # type: ignore
 
-    async def get_by_user_id(self, user_id: int) -> List[NotificationModel]:
+    async def get_by_user_id(self, user_id: int) -> list[NotificationModel]:
         return await self._fetch_by_field(NColumns.USER_ID, user_id)  # type: ignore
 
     async def count_notifications_by_user_id(self, user_id: int) -> int:

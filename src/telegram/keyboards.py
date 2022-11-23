@@ -1,12 +1,10 @@
-from typing import List
-
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.models import NotificationModel, UserModel
 from src.telegram.constants import CallbackVars, add_notification_cb
 
 
-def start(notifications: List[NotificationModel]) -> InlineKeyboardMarkup:
+def start(notifications: list[NotificationModel]) -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup()
     for notification in sorted(notifications):
 

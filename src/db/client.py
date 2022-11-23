@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Awaitable, Callable, Iterable
 from sqlite3 import Row
-from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Union
 
 import aiosqlite
 from aiosqlite import Cursor
@@ -25,14 +28,14 @@ _COLUMN_CONFIG = {
     NColumns.SEARCH_DESCRIPTION: 'BOOL DEFAULT 0',
 }
 
-_ADDITIONAL_COLUMN_CONFIG: Dict[Columns, str] = {
+_ADDITIONAL_COLUMN_CONFIG: dict[Columns, str] = {
     NColumns.USER_ID: (
         f'FOREIGN KEY ({NColumns.USER_ID}) REFERENCES {Tables.USERS} ({UColumns.USER_ID}) '
         f'ON UPDATE CASCADE ON DELETE CASCADE'
     )
 }
 
-RowType = Dict[Union[UColumns, NColumns], Optional[Union[str, int]]]
+RowType = dict[Union[UColumns, NColumns], Union[str, int, None]]
 
 
 class SQLiteClient:
@@ -40,7 +43,7 @@ class SQLiteClient:
         self.__db = Config.DATABASE
 
     @staticmethod
-    def dict_factory(cursor: Cursor, row: Tuple[Any, ...]) -> RowType:
+    def dict_factory(cursor: Cursor, row: tuple[Any, ...]) -> RowType:
         d = {}
         for idx, col in enumerate(cursor.description):
             d[col[0]] = row[idx]
@@ -49,8 +52,8 @@ class SQLiteClient:
 
     async def __execute(
             self,
-            query: str, values: Tuple[Union[str, int], ...] = (),
-            callback_function: Optional[Callable[[Cursor], Awaitable[Any]]] = None
+            query: str, values: tuple[str | int, ...] = (),
+            callback_function: Callable[[Cursor], Awaitable[Any]] | None = None
     ) -> Any:
         async with aiosqlite.connect(self.__db) as db:
             db.row_factory = self.dict_factory  # type:ignore
@@ -61,7 +64,7 @@ class SQLiteClient:
             return await callback_function(cursor) if callback_function else cursor.lastrowid
 
     async def fetch_one(self, query: str) -> RowType:
-        async def cb_func(cursor: Cursor) -> Optional[Row]: return await cursor.fetchone()
+        async def cb_func(cursor: Cursor) -> Row | None: return await cursor.fetchone()
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
@@ -70,12 +73,12 @@ class SQLiteClient:
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-    async def fetch_description(self, query: str) -> Tuple[Tuple[Any, ...]]:
-        async def cb_func(cursor: Cursor) -> Tuple[Tuple[Any, ...]]: return cursor.description
+    async def fetch_description(self, query: str) -> tuple[tuple[Any, ...]]:
+        async def cb_func(cursor: Cursor) -> tuple[tuple[Any, ...]]: return cursor.description
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-    async def update(self, query: str, values: Optional[Tuple[Union[int, str], ...]]) -> int:
+    async def update(self, query: str, values: tuple[int | str, ...] | None) -> int:
         return await self.__execute(query, values)  # type: ignore
 
     async def delete(self, query: str) -> None:
@@ -91,9 +94,9 @@ class SQLiteClient:
 
         return bool(entry and entry['count(name)'] == 1)  # type:ignore
 
-    async def create_table(self, table_name: Tables, fields: List[Columns]) -> None:
-        all_fields_query: List[str] = []
-        additional_column_config: List[str] = []
+    async def create_table(self, table_name: Tables, fields: list[Columns]) -> None:
+        all_fields_query: list[str] = []
+        additional_column_config: list[str] = []
         for field in fields:
             all_fields_query.append(f'{field} {_COLUMN_CONFIG[field]}')
 
@@ -109,13 +112,13 @@ class SQLiteClient:
     async def delete_column(self, table_name: Tables, column: str) -> None:
         await self.__execute(f'ALTER TABLE {table_name} DROP {column}')
 
-    async def get_all_columns(self, table_name: Tables) -> List[str]:
+    async def get_all_columns(self, table_name: Tables) -> list[str]:
         description = await self.fetch_description(f'SELECT * FROM {table_name} LIMIT 1')
 
         return [description[0] for description in description]
 
-    async def count_rows_by_field(self, table_name: Tables, field: Columns, value: Union[str, int]) -> int:
-        async def cb_func(cursor: Cursor) -> Optional[Row]: return await cursor.fetchone()
+    async def count_rows_by_field(self, table_name: Tables, field: Columns, value: str | int) -> int:
+        async def cb_func(cursor: Cursor) -> Row | None: return await cursor.fetchone()
 
         result = await self.__execute(
             f'SELECT COUNT(*) as counter FROM {table_name} WHERE {field} = {value}', callback_function=cb_func
