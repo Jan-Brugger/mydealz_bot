@@ -5,8 +5,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from typing import Any
 
+from src.config import Config
 from src.db.client import RowType, SQLiteClient
 from src.db.constants import Columns, NColumns, Tables, UColumns
+from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserNotFoundError
 from src.models import Model, NotificationModel, UserModel
 
 
@@ -120,8 +122,13 @@ class SQLiteUser(SQLiteTable):
         }
         await self._upsert(update)
 
-    async def get_by_id(self, user_id: int) -> UserModel | None:
-        return await self._fetch_by_id(user_id)  # type: ignore
+    async def get_by_id(self, user_id: int) -> UserModel:
+        user = await self._fetch_by_id(user_id)
+
+        if not user:
+            raise UserNotFoundError(user_id)
+
+        return user  # type: ignore
 
 
 class SQLiteNotifications(SQLiteTable):
@@ -147,6 +154,19 @@ class SQLiteNotifications(SQLiteTable):
 
         return notification
 
+    async def save_notification(self, query: str, chat_id: int) -> NotificationModel:
+        if await self.count_notifications_by_user_id(chat_id) >= Config.NOTIFICATION_CAP:
+            raise TooManyNotificationsError(chat_id)
+
+        notification = NotificationModel()
+        notification.user_id = chat_id
+        notification.query = query
+        notification.id = await self.upsert_model(notification)
+
+        logging.info('user %s added notification %s (%s)', notification.user_id, notification.id, notification.query)
+
+        return notification
+
     async def upsert_model(self, notification: NotificationModel) -> int:
         update: dict[str, str | int | bool] = {
             NColumns.USER_ID: notification.user_id,
@@ -162,11 +182,15 @@ class SQLiteNotifications(SQLiteTable):
     async def get_all(self) -> list[NotificationModel]:
         return await self._fetch_all()  # type: ignore
 
-    async def get_by_id(self, sqlite_id: int) -> NotificationModel | None:
+    async def get_by_id(self, sqlite_id: int) -> NotificationModel:
         if not sqlite_id:
-            return None
+            raise NotificationNotFoundError(sqlite_id)
 
-        return await self._fetch_by_id(sqlite_id)  # type: ignore
+        notification = await self._fetch_by_id(sqlite_id)
+        if not notification:
+            raise NotificationNotFoundError(sqlite_id)
+
+        return notification  # type: ignore
 
     async def get_by_user_id(self, user_id: int) -> list[NotificationModel]:
         return await self._fetch_by_field(NColumns.USER_ID, user_id)  # type: ignore
