@@ -2,7 +2,7 @@ import textwrap
 
 from src.config import Config
 from src.models import DealModel, NotificationModel, UserModel
-from src.telegram.constants import Commands
+from src.telegram.callbacks import Commands
 
 
 def start(user: UserModel) -> str:
@@ -18,10 +18,13 @@ def help_msg() -> str:
         <b>-Groß- und Kleinschreibung werden nicht berücksichtigt
         - Leerzeichen werden entfernt
         - Standardmäßig wird ein Multi-Match verwendet</b>
-        "<i>nutella&rewe</i>", "<i>Nutella & REWE</i>", und "<i>Nutella Rewe</i>" werden als "<i>nutella & rewe</i>" gespeichert.
+        "<i>nutella&rewe</i>", "<i>Nutella & REWE</i>", und "<i>Nutella Rewe</i>" werden als "<i>nutella & rewe</i>" gespeichert und suchen nach Deals mit "Nutella" und "Rewe".
+
+        <b>Um einen Suchbegriff auszuschließen nutze ein "!"</b>
+        "<i>preisfehler & !lokal</i>" sucht nach "Preisfehler", schließt aber Ergebnisse mit "lokal" aus.
 
         <b>Für mehrere Suchbegriffe benutze ein ",":</b>
-        "<i>Nutella, Ovomaltine</i>" sucht nach Nutella oder Ovomaltine.
+        "<i>Nutella, Ovomaltine</i>" sucht nach "Nutella" oder "Ovomaltine".
 
         <b>Um nach einem Leerzeichen zu suchen, benutze ein "+":</b>
         "<i>3060+TI</i>" liefert alle Deals mit "3060 TI" im Titel

@@ -6,10 +6,10 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 
-from aiogram.types import Chat
+from aiogram.types import CallbackQuery, Message
 from price_parser import Price
 
-from src.telegram.constants import ALLOWED_CHARACTERS, notifications_cb
+from src.telegram.callbacks import ALLOWED_CHARACTERS
 
 
 class Model:
@@ -59,7 +59,8 @@ class UserModel(Model):
     def last_name(self, value: str) -> None:
         self.__last_name = value
 
-    def parse_telegram_chat(self, chat: Chat) -> UserModel:
+    def parse_telegram_object(self, telegram_object: Message | CallbackQuery) -> UserModel:
+        chat = telegram_object.message.chat if isinstance(telegram_object, CallbackQuery) else telegram_object.chat
         self.id = chat.id
         self.username = chat.title or chat.username or ''
         self.first_name = chat.first_name or ''
@@ -214,9 +215,6 @@ class NotificationModel(Model):
     @search_preisjaeger.setter
     def search_preisjaeger(self, value: bool) -> None:
         self.__search_preisjaeger = value
-
-    def get_callback(self, action: str) -> str:
-        return str(notifications_cb.new(notification_id=self.id, action=action))
 
 
 @dataclass
