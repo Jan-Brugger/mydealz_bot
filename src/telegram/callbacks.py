@@ -21,27 +21,27 @@ class AbstractCallback(metaclass=ABCMeta):
 
 
 class HomeCB(AbstractCallback):
-    callback = CallbackData('home')
+    callback = CallbackData('home', 'reply')
 
     @classmethod
     def filter(cls) -> CallbackDataFilter:
         return cls._create_callback_filter()
 
     @classmethod
-    def new(cls) -> str:
-        return str(cls.callback.new())
+    def new(cls, reply: bool = False) -> str:
+        return str(cls.callback.new(reply=reply))
 
 
 class NotificationCB(AbstractCallback):
-    callback = CallbackData('notification', 'action', 'notification_id')
+    callback = CallbackData('notification', 'action', 'notification_id', 'reply')
 
     @classmethod
     def filter(cls, action: Actions | None = None, notification_id: int | None = None) -> CallbackDataFilter:
         return cls._create_callback_filter(action=action, notification_id=notification_id)
 
     @classmethod
-    def new(cls, action: Actions, notification_id: int) -> str:
-        return str(cls.callback.new(action=action, notification_id=notification_id))
+    def new(cls, action: Actions, notification_id: int, reply: bool = False) -> str:
+        return str(cls.callback.new(action=action, notification_id=notification_id, reply=reply))
 
 
 class SettingsCB(AbstractCallback):

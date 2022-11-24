@@ -108,10 +108,6 @@ def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
     return message
 
 
-def edit_deal_msg() -> str:
-    return 'Möchtest Du diese Benachrichtigung löschen?'
-
-
 def add_notification_inconclusive(text: str) -> str:
     return f'Möchtest Du eine Suchbegriff für "{text}" erstellen?'
 

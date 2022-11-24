@@ -63,21 +63,15 @@ def notification_commands(notification: NotificationModel) -> InlineKeyboardMark
     return keyboard
 
 
-def deal_kb(deal_link: str) -> InlineKeyboardMarkup:
+def deal_kb(deal_link: str, notification: NotificationModel) -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup()
     keyboard.row(
         InlineKeyboardButton('Zum Deal', url=deal_link),
     )
-
-    return keyboard
-
-
-def edit_deal_kb(notification: NotificationModel) -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup()
     keyboard.row(
-        InlineKeyboardButton('🗒️ Übersicht', callback_data=NotificationCB.new(Actions.VIEW, notification.id)),
-        InlineKeyboardButton('❌ Löschen', callback_data=NotificationCB.new(Actions.DELETE, notification.id)),
-        InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new())
+        InlineKeyboardButton('🗒️ Übersicht', callback_data=NotificationCB.new(Actions.VIEW, notification.id, True)),
+        InlineKeyboardButton('❌ Löschen', callback_data=NotificationCB.new(Actions.DELETE, notification.id, True)),
+        InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new(True))
     )
 
     return keyboard
