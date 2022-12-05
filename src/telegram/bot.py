@@ -78,6 +78,10 @@ class TelegramBot:
                 callback_data=callback_data
             )
 
+        @dispatcher.message_handler(commands=Commands.PING, state='*')
+        async def ping_handler(message: Message) -> None:
+            await message.answer('pong')
+
         @dispatcher.message_handler(commands=Commands.HELP, state='*')
         async def help_handler(telegram_object: Message | CallbackQuery) -> None:
             await overwrite_or_answer(

@@ -96,6 +96,7 @@ class Commands(StrEnum):
     START = 'start'
     HELP = 'help'
     SETTINGS = 'settings'
+    PING = 'ping'
 
 
 class States(StatesGroup):
