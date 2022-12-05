@@ -26,6 +26,7 @@ from src.models import DealModel, NotificationModel, UserModel
 from src.telegram import keyboards, messages
 from src.telegram.callbacks import ALLOWED_CHARACTERS, ALLOWED_SEPARATORS, Actions, AddNotificationCB, Commands, HomeCB, \
     NotificationCB, SettingsActions, SettingsCB, States
+from src.telegram.filters import BlacklistedFilter, NotWhitelistedFilter
 from src.telegram.helpers import finish_state, get_chat_id, get_notification, overwrite_or_answer, remove_reply_markup, \
     store_notification_id
 
@@ -47,6 +48,18 @@ class TelegramBot:
             storage = PickleStorage(path=Config.CHAT_FILE)
 
         dispatcher = Dispatcher(bot=self.bot, storage=storage)
+
+        @dispatcher.message_handler(NotWhitelistedFilter(), state='*')
+        async def not_whitelisted(message: Message) -> None:
+            await message.answer(
+                messages.user_not_whitelisted()
+            )
+
+        @dispatcher.message_handler(BlacklistedFilter(), state='*')
+        async def blacklisted(message: Message) -> None:
+            await message.answer(
+                messages.user_blacklisted()
+            )
 
         @dispatcher.message_handler(commands=Commands.START, state='*')
         @dispatcher.callback_query_handler(HomeCB.filter(), state='*')

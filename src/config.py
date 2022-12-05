@@ -12,6 +12,8 @@ class Config:
     DATABASE = 'sqlite_v2.db'
     PARSE_INTERVAL = 60
     NOTIFICATION_CAP = 50
+    WHITELIST: list[int] = []
+    BLACKLIST: list[int] = []
 
     @classmethod
     def init(cls) -> None:
@@ -30,3 +32,5 @@ class Config:
         interval = getenv('PARSE_INTERVAL')
         cls.PARSE_INTERVAL = int(interval) if interval else cls.PARSE_INTERVAL
         cls.NOTIFICATION_CAP = int(getenv('NOTIFICATION_CAP') or cls.NOTIFICATION_CAP)
+        cls.WHITELIST = [int(x.strip()) for x in getenv('WHITELIST', '').split(',') if x.strip()]
+        cls.BLACKLIST = [int(x.strip()) for x in getenv('BLACKLIST', '').split(',') if x.strip()]
