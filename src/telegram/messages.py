@@ -120,6 +120,12 @@ def too_many_notifications() -> str:
     return f'Die Begrenzung für Suchbegriffe liegt bei: {Config.NOTIFICATION_CAP}'
 
 
+def user_not_whitelisted() -> str:
+    return 'Das ist ein Test-Bot. Offizieller Bot: @mydealz_notification_bot'
+
+def user_blacklisted() -> str:
+    return 'Du bist leider vom Bot blockiert worden. Tja. ¯\\_(ツ)_/¯'
+
 def settings(user: UserModel) -> str:
     pages = []
     if user.search_mydealz:
