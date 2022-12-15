@@ -15,6 +15,8 @@ def start(notifications: list[NotificationModel]) -> InlineKeyboardMarkup:
             query += '💰'
         if notification.search_only_hot:
             query += '🌶️'
+        if notification.search_description:
+            query += '🔍'
 
         keyboard.add(
             InlineKeyboardButton(query.strip(), callback_data=NotificationCB.new(Actions.VIEW, notification.id))
