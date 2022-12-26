@@ -18,6 +18,7 @@ class UColumns(Columns):
     SEARCH_MYDEALZ = 'search_md'
     SEARCH_MINDSTAR = 'search_ms'
     SEARCH_PREISJAEGER = 'search_pj'
+    ACTIVE = 'active'
 
 
 class NColumns(Columns):

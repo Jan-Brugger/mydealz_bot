@@ -82,6 +82,9 @@ class TelegramBot:
 
                 await SQLiteUser().upsert_model(user)
 
+            if not user.active:
+                await SQLiteUser().set_user_state(user.id, True)
+
             notifications = await SQLiteNotifications().get_by_user_id(user.id)
 
             await overwrite_or_answer(
@@ -347,8 +350,8 @@ class TelegramBot:
                 reply_markup=keyboards.deal_kb(deal.link, notification)
             )
         except (Unauthorized, ChatNotFound):
-            logging.info('User %s blocked the bot. Remove all database entries', notification.user_id)
-            await SQLiteUser().delete_by_id(notification.user_id)
+            logging.info('User %s blocked the bot. Disable him', notification.user_id)
+            await SQLiteUser().set_user_state(notification.user_id, False)
 
         # except TimedOut as error:
         #     if first_try:

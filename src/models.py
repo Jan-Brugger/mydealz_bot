@@ -26,6 +26,7 @@ class UserModel(Model):
         self.__search_mydealz: bool = True
         self.__search_mindstar: bool = True
         self.__search_preisjaeger: bool = False
+        self.__active: bool = True
 
     @property
     def id(self) -> int:
@@ -59,15 +60,6 @@ class UserModel(Model):
     def last_name(self, value: str) -> None:
         self.__last_name = value
 
-    def parse_telegram_object(self, telegram_object: Message | CallbackQuery) -> UserModel:
-        chat = telegram_object.message.chat if isinstance(telegram_object, CallbackQuery) else telegram_object.chat
-        self.id = chat.id
-        self.username = chat.title or chat.username or ''
-        self.first_name = chat.first_name or ''
-        self.last_name = chat.last_name or ''
-
-        return self
-
     @property
     def search_mydealz(self) -> bool:
         return self.__search_mydealz
@@ -91,6 +83,23 @@ class UserModel(Model):
     @search_preisjaeger.setter
     def search_preisjaeger(self, value: bool) -> None:
         self.__search_preisjaeger = value
+
+    @property
+    def active(self) -> bool:
+        return self.__active
+
+    @active.setter
+    def active(self, value: bool) -> None:
+        self.__active = value
+
+    def parse_telegram_object(self, telegram_object: Message | CallbackQuery) -> UserModel:
+        chat = telegram_object.message.chat if isinstance(telegram_object, CallbackQuery) else telegram_object.chat
+        self.id = chat.id
+        self.username = chat.title or chat.username or ''
+        self.first_name = chat.first_name or ''
+        self.last_name = chat.last_name or ''
+
+        return self
 
 
 @dataclass

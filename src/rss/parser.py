@@ -39,7 +39,7 @@ class Parser:
             for deal in deals:
                 sent_to_users = []
                 for notification in all_notifications:
-                    if not feeds[feed_number].consider_deals(notification) or notification.user_id in sent_to_users:
+                    if notification.user_id in sent_to_users or not feeds[feed_number].consider_deals(notification):
                         continue
 
                     if self.notification_matches_deal(notification, deal):

@@ -19,6 +19,7 @@ _COLUMN_CONFIG = {
     UColumns.SEARCH_MYDEALZ: 'BOOL DEFAULT 1',
     UColumns.SEARCH_MINDSTAR: 'BOOL DEFAULT 1',
     UColumns.SEARCH_PREISJAEGER: 'BOOL DEFAULT 1',
+    UColumns.ACTIVE: 'BOOL DEFAULT 1',
     NColumns.NOTIFICATION_ID: 'INTEGER PRIMARY KEY',
     NColumns.USER_ID: 'INTEGER NOT NULL',
     NColumns.QUERY: 'TEXT',
@@ -78,7 +79,7 @@ class SQLiteClient:
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
-    async def update(self, query: str, values: tuple[int | str, ...] | None) -> int:
+    async def update(self, query: str, values: tuple[int | str, ...] | None = None) -> int:
         return await self.__execute(query, values)  # type: ignore
 
     async def delete(self, query: str) -> None:

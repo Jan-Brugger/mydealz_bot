@@ -70,7 +70,6 @@ class SQLiteTable(SQLiteClient, ABC):
     async def toggle_field(self, sqlite_id: str | int, field: UColumns | NColumns) -> None:
         await self.update(
             f'UPDATE {self._table_name} SET {field} = abs({field}-1) WHERE {self._table_name}.ROWID == {sqlite_id}'
-            , None
         )
 
     async def init_table(self) -> None:
@@ -107,6 +106,7 @@ class SQLiteUser(SQLiteTable):
         user.search_mydealz = bool(row[UColumns.SEARCH_MYDEALZ])
         user.search_mindstar = bool(row[UColumns.SEARCH_MINDSTAR])
         user.search_preisjaeger = bool(row[UColumns.SEARCH_PREISJAEGER])
+        user.active = bool(row[UColumns.ACTIVE])
 
         return user
 
@@ -119,6 +119,7 @@ class SQLiteUser(SQLiteTable):
             UColumns.SEARCH_MYDEALZ: user.search_mydealz,
             UColumns.SEARCH_MINDSTAR: user.search_mindstar,
             UColumns.SEARCH_PREISJAEGER: user.search_preisjaeger,
+            UColumns.ACTIVE: user.active,
         }
         await self._upsert(update)
 
@@ -129,6 +130,11 @@ class SQLiteUser(SQLiteTable):
             raise UserNotFoundError(user_id)
 
         return user  # type: ignore
+
+    async def set_user_state(self, user_id: int, state: bool) -> None:
+        await self.update(
+            f'UPDATE {self._table_name} SET {UColumns.ACTIVE} = {int(state)} WHERE {self._table_name}.ROWID == {user_id}'
+        )
 
 
 class SQLiteNotifications(SQLiteTable):
@@ -180,7 +186,7 @@ class SQLiteNotifications(SQLiteTable):
         return await self._upsert(update, notification.id)
 
     async def get_all(self) -> list[NotificationModel]:
-        return await self._fetch_all()  # type: ignore
+        return await self._fetch_all(where=f'{Tables.USERS}.{UColumns.ACTIVE} == 1')  # type: ignore
 
     async def get_by_id(self, sqlite_id: int) -> NotificationModel:
         if not sqlite_id:
