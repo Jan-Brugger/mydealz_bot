@@ -360,7 +360,7 @@ class TelegramBot:
         #     else:
         #         self.send_error(error)
 
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-exception-caught
             await self.send_error(error)
 
     async def send_error(self, error: Exception, update: Update | None = None) -> None:

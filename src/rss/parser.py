@@ -15,7 +15,7 @@ class Parser:
     async def run(self) -> None:
         try:
             await self.parse()
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-exception-caught
             await self.bot.send_error(error)
 
     async def parse(self) -> None:

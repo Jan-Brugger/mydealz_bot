@@ -123,8 +123,10 @@ def too_many_notifications() -> str:
 def user_not_whitelisted() -> str:
     return 'Das ist ein Test-Bot. Offizieller Bot: @mydealz_notification_bot'
 
+
 def user_blacklisted() -> str:
     return 'Du bist leider vom Bot blockiert worden. Tja. ¯\\_(ツ)_/¯'
+
 
 def settings(user: UserModel) -> str:
     pages = []
@@ -137,6 +139,6 @@ def settings(user: UserModel) -> str:
 
     message = 'Folgende Websites werden durchsucht:'
     for page in pages:
-        message += f'\n + {page}'
+        message.join(f'\n + {page}')
 
     return message
