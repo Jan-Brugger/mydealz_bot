@@ -16,7 +16,7 @@ from aiogram.contrib.fsm_storage.files import PickleStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message, ParseMode, Update
 from aiogram.utils import executor
-from aiogram.utils.exceptions import ChatNotFound, Unauthorized
+from aiogram.utils.exceptions import ChatNotFound, Unauthorized, WrongFileIdentifier
 
 from src.config import Config
 from src.db.constants import UColumns
@@ -342,12 +342,27 @@ class TelegramBot:
 
     # pylint: disable=unused-argument
     async def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
+        message = messages.deal_msg(deal, notification)
+        keyboard = keyboards.deal_kb(deal.link, notification)
         try:
+            try:
+                await self.bot.send_photo(
+                    chat_id=notification.user_id,
+                    photo=deal.image_url,
+                    caption=message,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=keyboard
+                )
+
+                return
+            except WrongFileIdentifier:
+                pass
+
             await self.bot.send_message(
                 chat_id=notification.user_id,
-                text=messages.deal_msg(deal, notification),
+                text=message,
                 parse_mode=ParseMode.HTML,
-                reply_markup=keyboards.deal_kb(deal.link, notification)
+                reply_markup=keyboard
             )
         except (Unauthorized, ChatNotFound):
             logging.info('User %s blocked the bot. Disable him', notification.user_id)
@@ -361,27 +376,36 @@ class TelegramBot:
         #         self.send_error(error)
 
         except Exception as error:  # pylint: disable=broad-exception-caught
-            await self.send_error(error)
+            await self.send_error(error, message=message)
 
-    async def send_error(self, error: Exception, update: Update | None = None) -> None:
+    async def send_error(self,
+                         error: Exception,
+                         update: Update | None = None,
+                         message: str | None = None
+                         ) -> None:
         own_id = getenv('OWN_ID')
 
         if not own_id:
             return
 
-        message = 'An exception was raised while handling an update\n'
-        if update:
-            message += \
-                f'<pre>update = {html.escape(json.dumps(update.to_python(), indent=2, ensure_ascii=False))}</pre>\n\n'
+        if message:
+            error_message = \
+                f'An exception was raised while sending following message:\n<pre>{html.escape(message)}</pre>'
+        else:
+            error_message = 'An exception was raised while handling an update\n'
+
+            if update:
+                error_message += \
+                    f'<pre>update = {html.escape(json.dumps(update.to_python(), indent=2, ensure_ascii=False))}</pre>\n\n'
 
         tb_string = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
-        message += f'<pre>{html.escape(tb_string)}</pre>'
+        error_message += f'<pre>{html.escape(tb_string)}</pre>'
 
-        if len(message) > 4096:
-            for x in range(0, len(message), 4096):
-                await self.bot.send_message(chat_id=own_id, text=message[x:x + 4096])
+        if len(error_message) > 4096:
+            for x in range(0, len(error_message), 4096):
+                await self.bot.send_message(chat_id=own_id, text=error_message[x:x + 4096])
         else:
-            await self.bot.send_message(chat_id=own_id, text=message)
+            await self.bot.send_message(chat_id=own_id, text=error_message)
 
     @classmethod
     async def shutdown(cls, dispatcher: Dispatcher) -> None:

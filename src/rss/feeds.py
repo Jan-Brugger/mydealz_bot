@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import isfile
@@ -98,12 +99,22 @@ class PepperFeed(ABC):
     def parse_deal(cls, entry: FeedParserDict) -> DealModel:
         deal = DealModel()
         deal.title = entry.get('title', '')
-        deal.description = entry.get('description', '')
         deal.category = entry.get('category', '')
         deal.merchant = entry.get('pepper_merchant', {}).get('name', '')
         deal.price = Price.fromstring(entry.get('pepper_merchant', {}).get('price', ''))
         deal.link = entry.get('link', '')
         deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
+
+        description = entry.get('summary', '')
+        if description.startswith('<strong>'):
+            # Remove price and merchant
+            description = re.sub(r'<strong>.+?</strong>', '', description, 1)
+        deal.description = description
+
+        try:
+            deal.image_url = entry['media_content'][0]['url']
+        except (KeyError, IndexError):
+            pass
 
         return deal
 
@@ -157,6 +168,7 @@ class MindStarsFeed(AbstractFeed):
         deal.price = Price.fromstring(entry.get('_price', ''))
         deal.link = entry.get('link', '')
         deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
+        deal.image_url = entry.get('_image', '')
 
         return deal
 

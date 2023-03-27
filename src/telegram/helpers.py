@@ -30,7 +30,7 @@ async def overwrite_or_answer(
 ) -> None:
     message = telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object
     if callback_data and callback_data.get('reply') == 'True':
-        await message.reply(text=text, reply_markup=reply_markup, disable_web_page_preview=True)
+        await message.answer(text=text, reply_markup=reply_markup, disable_web_page_preview=True)
 
         return
 

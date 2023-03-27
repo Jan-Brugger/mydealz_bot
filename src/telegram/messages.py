@@ -1,3 +1,4 @@
+import html
 import textwrap
 
 from src.config import Config
@@ -100,10 +101,12 @@ def notification_deleted(notification: NotificationModel) -> str:
 
 
 def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
-    message = f'Neuer Deal für "{notification.query}":\n{deal.title}\n<a href="{deal.link}">{deal.link}</a>'
+    message = f'Neuer Deal für "{notification.query}":\n' \
+              f'<b><a href="{deal.link}">{html.escape(deal.title)}</a></b>\n' \
+              f'{html.escape(deal.description[0:300])}...'
 
     if deal.price.amount:
-        message += f'\n Preis: {deal.price.amount:.2f} {deal.price.currency}'
+        message += f'\n<b>Preis: {deal.price.amount:.2f} {deal.price.currency}</b>'
 
     return message
 

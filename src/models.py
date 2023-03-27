@@ -235,6 +235,7 @@ class DealModel(Model):
         self.__merchant: str = ''
         self.__price: Price = Price.fromstring('')
         self.__link: str = ''
+        self.__image_url: str = ''
         self.__published: datetime | None = None
 
     @property
@@ -258,7 +259,7 @@ class DealModel(Model):
 
     @description.setter
     def description(self, value: str) -> None:
-        self.__description = value
+        self.__description = re.sub(re.compile(r'<.*?>'), ' ', value).strip()
 
     @property
     def category(self) -> str:
@@ -291,6 +292,14 @@ class DealModel(Model):
     @link.setter
     def link(self, value: str) -> None:
         self.__link = value
+
+    @property
+    def image_url(self) -> str:
+        return self.__image_url
+
+    @image_url.setter
+    def image_url(self, value: str) -> None:
+        self.__image_url = value
 
     @property
     def published(self) -> datetime:
