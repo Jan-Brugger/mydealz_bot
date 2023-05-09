@@ -16,7 +16,7 @@ from aiogram.contrib.fsm_storage.files import PickleStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message, ParseMode, Update
 from aiogram.utils import executor
-from aiogram.utils.exceptions import ChatNotFound, Unauthorized, WrongFileIdentifier
+from aiogram.utils.exceptions import ChatNotFound, InvalidHTTPUrlContent, Unauthorized, WrongFileIdentifier
 
 from src.config import Config
 from src.db.constants import UColumns
@@ -355,7 +355,7 @@ class TelegramBot:
                 )
 
                 return
-            except WrongFileIdentifier:
+            except (WrongFileIdentifier, InvalidHTTPUrlContent):
                 pass
 
             await self.bot.send_message(
