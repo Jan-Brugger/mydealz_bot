@@ -16,7 +16,7 @@ from aiogram.contrib.fsm_storage.files import PickleStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message, ParseMode, Update
 from aiogram.utils import executor
-from aiogram.utils.exceptions import ChatNotFound, InvalidHTTPUrlContent, Unauthorized, WrongFileIdentifier
+from aiogram.utils.exceptions import ChatNotFound, TelegramAPIError, Unauthorized
 
 from src.config import Config
 from src.db.constants import UColumns
@@ -24,8 +24,8 @@ from src.db.tables import SQLiteNotifications, SQLiteUser
 from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserNotFoundError
 from src.models import DealModel, NotificationModel, UserModel
 from src.telegram import keyboards, messages
-from src.telegram.callbacks import ALLOWED_CHARACTERS, ALLOWED_SEPARATORS, Actions, AddNotificationCB, Commands, HomeCB, \
-    NotificationCB, SettingsActions, SettingsCB, States
+from src.telegram.callbacks import ALLOWED_CHARACTERS, ALLOWED_SEPARATORS, Actions, AddNotificationCB, BroadcastCB, \
+    Commands, HomeCB, NotificationCB, SettingsActions, SettingsCB, States
 from src.telegram.filters import BlacklistedFilter, NotWhitelistedFilter
 from src.telegram.helpers import finish_state, get_chat_id, get_notification, overwrite_or_answer, remove_reply_markup, \
     store_notification_id
@@ -119,6 +119,58 @@ class TelegramBot:
                 messages.settings(user),
                 reply_markup=keyboards.settings(user)
             )
+
+        @dispatcher.message_handler(commands=Commands.BROADCAST, state='*')
+        async def broadcast(
+                telegram_object: Message | CallbackQuery,
+                state: FSMContext | None = None
+        ) -> None:
+            await finish_state(state)
+
+            if get_chat_id(telegram_object) != int(getenv('OWN_ID') or 0):
+                return
+
+            await States.BROADCAST.set()
+            await overwrite_or_answer(telegram_object, messages.broadcast_start())
+
+        @dispatcher.message_handler(state=States.BROADCAST)
+        async def broadcast_validate(message: Message, state: FSMContext) -> None:
+            await finish_state(state)
+            await message.reply(
+                text=messages.broadcast_verify(),
+                reply_markup=keyboards.broadcast_message(message.message_id)
+            )
+
+        @dispatcher.callback_query_handler(BroadcastCB.filter())
+        async def broadcast_send(
+                query: CallbackQuery,
+                state: FSMContext,
+                callback_data: dict[str, Any]
+        ) -> None:
+            await finish_state(state)
+
+            message_id = int(callback_data.get('message_id', 0))
+            if not message_id:
+                return
+
+            users = await SQLiteUser().get_all_active_user_ids()
+            sent_to = 0
+            for user_id in users:
+                try:
+                    await self.bot.copy_message(
+                        chat_id=user_id,
+                        from_chat_id=getenv('OWN_ID'),
+                        message_id=message_id,
+                        disable_notification=True
+                    )
+                    sent_to += 1
+                except (Unauthorized, ChatNotFound):
+                    logging.info('User %s blocked the bot. Disable him', user_id)
+                    await SQLiteUser().set_user_state(user_id, False)
+                except TelegramAPIError as error:
+                    logging.error('Failed to send broadcast-message. %s', error)
+
+            await overwrite_or_answer(query, messages.broadcast_sent(sent_to, len(users)))
 
         @dispatcher.callback_query_handler(AddNotificationCB.filter(query=''))
         async def add_notification(query: CallbackQuery) -> None:
@@ -360,7 +412,7 @@ class TelegramBot:
                     )
 
                     return
-                except (WrongFileIdentifier, InvalidHTTPUrlContent):
+                except TelegramAPIError:
                     pass
 
             await self.bot.send_message(

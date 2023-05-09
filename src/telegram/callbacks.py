@@ -68,6 +68,18 @@ class AddNotificationCB(AbstractCallback):
         return str(cls.callback.new(query=query))
 
 
+class BroadcastCB(AbstractCallback):
+    callback = CallbackData('broadcast', 'message_id')
+
+    @classmethod
+    def filter(cls) -> CallbackDataFilter:
+        return cls._create_callback_filter(message_id=None)
+
+    @classmethod
+    def new(cls, message_id: int) -> str:
+        return str(cls.callback.new(message_id=str(message_id)))
+
+
 class StrEnum(str, Enum):
     @DynamicClassAttribute
     def value(self) -> str:
@@ -98,6 +110,7 @@ class Commands(StrEnum):
     HELP = 'help'
     SETTINGS = 'settings'
     PING = 'ping'
+    BROADCAST = 'broadcast'
 
 
 class States(StatesGroup):
@@ -105,3 +118,4 @@ class States(StatesGroup):
     EDIT_QUERY = State()
     EDIT_MIN_PRICE = State()
     EDIT_MAX_PRICE = State()
+    BROADCAST = State()

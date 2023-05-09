@@ -1,7 +1,8 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.models import NotificationModel, UserModel
-from src.telegram.callbacks import Actions, AddNotificationCB, HomeCB, NotificationCB, SettingsActions, SettingsCB
+from src.telegram.callbacks import Actions, AddNotificationCB, BroadcastCB, HomeCB, NotificationCB, SettingsActions, \
+    SettingsCB
 
 
 def start(notifications: list[NotificationModel]) -> InlineKeyboardMarkup:
@@ -112,6 +113,16 @@ def home_button() -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup()
     keyboard.add(
         InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new())
+    )
+
+    return keyboard
+
+
+def broadcast_message(message_id: int) -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup()
+    keyboard.row(
+        InlineKeyboardButton('✅ Ja', callback_data=BroadcastCB.new(message_id = message_id)),
+        InlineKeyboardButton('❌ Nein', callback_data=HomeCB.new())
     )
 
     return keyboard

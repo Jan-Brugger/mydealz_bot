@@ -145,3 +145,15 @@ def settings(user: UserModel) -> str:
         message.join(f'\n + {page}')
 
     return message
+
+
+def broadcast_start() -> str:
+    return 'Was möchtest Du broadcasten?'
+
+
+def broadcast_verify() -> str:
+    return 'Möchtest Du diese Nachricht an alle Nutzer senden?'
+
+
+def broadcast_sent(amount_successful: int, amount_total: int) -> str:
+    return f'Erfolgreich an {amount_successful}/{amount_total} Nutzer geschickt.'

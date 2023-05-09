@@ -138,6 +138,11 @@ class SQLiteUser(SQLiteTable):
             f'UPDATE {self._table_name} SET {UColumns.ACTIVE} = {int(state)} WHERE {self._table_name}.ROWID == {user_id}'
         )
 
+    async def get_all_active_user_ids(self) -> list[int]:
+        users: list[UserModel] = await self._fetch_all(where=f'{Tables.USERS}.{UColumns.ACTIVE} == 1')  # type: ignore
+
+        return [user.id for user in users]
+
 
 class SQLiteNotifications(SQLiteTable):
     _table_name = Tables.NOTIFICATIONS
