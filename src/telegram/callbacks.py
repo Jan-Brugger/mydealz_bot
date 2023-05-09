@@ -88,6 +88,7 @@ class SettingsActions(StrEnum):
     TOGGLE_MYDEALZ = auto()
     TOGGLE_MINDSTAR = auto()
     TOGGLE_PREISJAEGER = auto()
+    TOGGLE_IMAGES = auto()
 
 
 class Commands(StrEnum):

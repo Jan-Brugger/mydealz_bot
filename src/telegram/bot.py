@@ -262,6 +262,11 @@ class TelegramBot:
             await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEARCH_PREISJAEGER)
             await settings(query)
 
+        @dispatcher.callback_query_handler(SettingsCB.filter(action=SettingsActions.TOGGLE_IMAGES))
+        async def toggle_images(query: CallbackQuery) -> None:
+            await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEND_IMAGES)
+            await settings(query)
+
         @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.DELETE))
         async def delete_notification(
                 query: CallbackQuery,
@@ -340,40 +345,34 @@ class TelegramBot:
 
         self.dispatcher = dispatcher
 
-    # pylint: disable=unused-argument
-    async def send_deal(self, deal: DealModel, notification: NotificationModel, first_try: bool = True) -> None:
+    async def send_deal(self, deal: DealModel, notification: NotificationModel) -> None:
         message = messages.deal_msg(deal, notification)
         keyboard = keyboards.deal_kb(deal.link, notification)
         try:
-            try:
-                await self.bot.send_photo(
-                    chat_id=notification.user_id,
-                    photo=deal.image_url,
-                    caption=message,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=keyboard
-                )
+            if notification.send_image:
+                try:
+                    await self.bot.send_photo(
+                        chat_id=notification.user_id,
+                        photo=deal.image_url,
+                        caption=message,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=keyboard
+                    )
 
-                return
-            except (WrongFileIdentifier, InvalidHTTPUrlContent):
-                pass
+                    return
+                except (WrongFileIdentifier, InvalidHTTPUrlContent):
+                    pass
 
             await self.bot.send_message(
                 chat_id=notification.user_id,
                 text=message,
                 parse_mode=ParseMode.HTML,
-                reply_markup=keyboard
+                reply_markup=keyboard,
+                disable_web_page_preview=True
             )
         except (Unauthorized, ChatNotFound):
             logging.info('User %s blocked the bot. Disable him', notification.user_id)
             await SQLiteUser().set_user_state(notification.user_id, False)
-
-        # except TimedOut as error:
-        #     if first_try:
-        #         logging.warning('Sending message timed out, try again.')
-        #         self.send_deal(deal, notification, False)
-        #     else:
-        #         self.send_error(error)
 
         except Exception as error:  # pylint: disable=broad-exception-caught
             await self.send_error(error, message=message)

@@ -26,6 +26,7 @@ class UserModel(Model):
         self.__search_mydealz: bool = True
         self.__search_mindstar: bool = True
         self.__search_preisjaeger: bool = False
+        self.__send_images: bool = True
         self.__active: bool = True
 
     @property
@@ -85,6 +86,14 @@ class UserModel(Model):
         self.__search_preisjaeger = value
 
     @property
+    def send_images(self) -> bool:
+        return self.__send_images
+
+    @send_images.setter
+    def send_images(self, value: bool) -> None:
+        self.__send_images = value
+
+    @property
     def active(self) -> bool:
         return self.__active
 
@@ -115,6 +124,7 @@ class NotificationModel(Model):
         self.__search_mydealz: bool = True
         self.__search_mindstar: bool = True
         self.__search_preisjaeger: bool = True
+        self.__send_image: bool = True
 
     def __lt__(self, other: NotificationModel) -> bool:
         return self.query.lower() < other.query.lower()
@@ -224,6 +234,14 @@ class NotificationModel(Model):
     @search_preisjaeger.setter
     def search_preisjaeger(self, value: bool) -> None:
         self.__search_preisjaeger = value
+
+    @property
+    def send_image(self) -> bool:
+        return self.__send_image
+
+    @send_image.setter
+    def send_image(self, value: bool) -> None:
+        self.__send_image = value
 
 
 @dataclass

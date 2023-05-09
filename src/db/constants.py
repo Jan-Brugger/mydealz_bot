@@ -19,6 +19,7 @@ class UColumns(Columns):
     SEARCH_MINDSTAR = 'search_ms'
     SEARCH_PREISJAEGER = 'search_pj'
     ACTIVE = 'active'
+    SEND_IMAGES = 'send_images'
 
 
 class NColumns(Columns):

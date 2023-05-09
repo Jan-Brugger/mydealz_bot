@@ -96,6 +96,7 @@ def settings(user: UserModel) -> InlineKeyboardMarkup:
         (SettingsCB.new(action=SettingsActions.TOGGLE_MYDEALZ), user.search_mydealz, 'mydealz.de'),
         (SettingsCB.new(action=SettingsActions.TOGGLE_MINDSTAR), user.search_mindstar, 'MindStar'),
         (SettingsCB.new(action=SettingsActions.TOGGLE_PREISJAEGER), user.search_preisjaeger, 'preisjaeger.at'),
+        (SettingsCB.new(action=SettingsActions.TOGGLE_IMAGES), user.send_images, 'Deal-Bilder'),
     ]
     for toggle in toggles:
         keyboard.add(
