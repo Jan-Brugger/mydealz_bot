@@ -1,8 +1,8 @@
 aiogram==2.25.1
-aiosqlite==0.18.0
-apscheduler==3.10.0
+aiosqlite==0.19.0
+apscheduler==3.10.1
 feedparser==6.0.10
 price-parser==0.3.4
 python-dotenv==1.0.0
-requests==2.28.2
-urllib3==1.26.14
+requests==2.30.0
+urllib3==2.0.2

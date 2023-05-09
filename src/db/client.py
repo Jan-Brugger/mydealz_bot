@@ -49,7 +49,7 @@ class SQLiteClient:
         for idx, col in enumerate(cursor.description):
             d[col[0]] = row[idx]
 
-        return d
+        return d  # type: ignore
 
     async def __execute(
             self,
@@ -75,7 +75,7 @@ class SQLiteClient:
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
     async def fetch_description(self, query: str) -> tuple[tuple[Any, ...]]:
-        async def cb_func(cursor: Cursor) -> tuple[tuple[Any, ...]]: return cursor.description
+        async def cb_func(cursor: Cursor) -> tuple[tuple[Any, ...], ...]: return cursor.description
 
         return await self.__execute(query, callback_function=cb_func)  # type: ignore
 
