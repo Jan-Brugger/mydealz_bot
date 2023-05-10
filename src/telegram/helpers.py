@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, overload
 
 from aiogram.dispatcher import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.exceptions import MessageCantBeEdited, TelegramAPIError
 
 from src.db.tables import SQLiteNotifications
@@ -26,20 +26,21 @@ async def overwrite_or_answer(
         telegram_object: Message | CallbackQuery,
         text: str,
         reply_markup: InlineKeyboardMarkup | None = None,
-        callback_data: dict[str, Any] | None = None
+        reply_instead_of_edit: bool = False
 ) -> None:
-    message = telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object
-    if callback_data and callback_data.get('reply') == 'True':
-        await message.answer(text=text, reply_markup=reply_markup, disable_web_page_preview=True)
+    await remove_reply_markup(telegram_object)
 
-        return
+    message = telegram_object.message if isinstance(telegram_object, CallbackQuery) else telegram_object
 
     try:
-        await message.edit_text(text, reply_markup=reply_markup, disable_web_page_preview=True)
+        if not reply_instead_of_edit:
+            await message.edit_text(text, reply_markup=reply_markup, disable_web_page_preview=True)
+
+            return
     except MessageCantBeEdited:
-        await message.answer(
-            text, reply_markup=reply_markup or ReplyKeyboardRemove(), disable_web_page_preview=True
-        )
+        pass
+
+    await message.answer(text, reply_markup=reply_markup, disable_web_page_preview=True)
 
 
 async def store_notification_id(state: FSMContext, callback_data: CallbackDataType) -> None:
@@ -71,3 +72,34 @@ def get_chat_id(telegram_object: Message | CallbackQuery) -> int:
 async def finish_state(state: FSMContext | None) -> None:
     if state and await state.get_state():
         await state.finish()
+
+
+@overload
+def get_callback_var(callback_data: dict[str, Any] | None, key: str, cast_type: type[bool]) -> bool:
+    ...
+
+
+@overload
+def get_callback_var(callback_data: dict[str, Any] | None, key: str, cast_type: type[int]) -> int:
+    ...
+
+
+@overload
+def get_callback_var(callback_data: dict[str, Any] | None, key: str, cast_type: type[str]) -> str:
+    ...
+
+
+def get_callback_var(
+        callback_data: dict[str, Any] | None,
+        key: str,
+        cast_type: type[Any]
+) -> bool | int | str:
+    value: str = (callback_data or {}).get(key, '')
+
+    if cast_type == bool:
+        return value.lower() in {'1', 'true'}
+
+    if cast_type == int:
+        return int(value or 0)
+
+    return value

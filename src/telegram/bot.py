@@ -27,7 +27,7 @@ from src.telegram import keyboards, messages
 from src.telegram.callbacks import ALLOWED_CHARACTERS, ALLOWED_SEPARATORS, Actions, AddNotificationCB, BroadcastCB, \
     Commands, HomeCB, NotificationCB, SettingsActions, SettingsCB, States
 from src.telegram.filters import BlacklistedFilter, NotWhitelistedFilter
-from src.telegram.helpers import finish_state, get_chat_id, get_notification, overwrite_or_answer, remove_reply_markup, \
+from src.telegram.helpers import finish_state, get_callback_var, get_chat_id, get_notification, overwrite_or_answer, \
     store_notification_id
 
 QUERY_PATTERN = rf'^[{ALLOWED_SEPARATORS}{ALLOWED_CHARACTERS}]+$'
@@ -51,6 +51,8 @@ class TelegramBot:
 
         @dispatcher.message_handler(NotWhitelistedFilter(), state='*')
         async def not_whitelisted(message: Message) -> None:
+            await SQLiteUser().set_user_state(get_chat_id(message), False)
+
             await message.answer(
                 messages.user_not_whitelisted()
             )
@@ -90,8 +92,8 @@ class TelegramBot:
             await overwrite_or_answer(
                 telegram_object=telegram_object,
                 text=messages.start(user),
-                reply_markup=keyboards.start(notifications),
-                callback_data=callback_data
+                reply_markup=keyboards.start(notifications, get_callback_var(callback_data, 'page', int)),
+                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool)
             )
 
         @dispatcher.message_handler(commands=Commands.PING, state='*')
@@ -149,7 +151,7 @@ class TelegramBot:
         ) -> None:
             await finish_state(state)
 
-            message_id = int(callback_data.get('message_id', 0))
+            message_id = get_callback_var(callback_data, 'message_id', int)
             if not message_id:
                 return
 
@@ -186,7 +188,7 @@ class TelegramBot:
         ) -> None:
             await state.finish()
 
-            notification_query = callback_data.get('query', '') if callback_data else telegram_object.text
+            notification_query = get_callback_var(callback_data, 'query', str) or telegram_object.text
             chat_id = get_chat_id(telegram_object)
             notification = await SQLiteNotifications().save_notification(notification_query, chat_id)
 
@@ -206,7 +208,7 @@ class TelegramBot:
                 query.message,
                 messages.notification_overview(notification),
                 reply_markup=keyboards.notification_commands(notification),
-                callback_data=callback_data
+                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool)
             )
 
         @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.UPDATE_QUERY), state='*')
@@ -327,12 +329,11 @@ class TelegramBot:
             notification = await get_notification(callback_data)
             await SQLiteNotifications().delete_by_id(notification.id)
 
-            await remove_reply_markup(query)
             await overwrite_or_answer(
                 telegram_object=query.message,
                 text=messages.notification_deleted(notification),
                 reply_markup=keyboards.home_button(),
-                callback_data=callback_data
+                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool)
             )
 
         @dispatcher.message_handler(regexp=QUERY_PATTERN_LIMITED_CHARS)

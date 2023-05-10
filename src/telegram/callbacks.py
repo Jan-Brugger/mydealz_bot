@@ -21,15 +21,15 @@ class AbstractCallback(metaclass=ABCMeta):
 
 
 class HomeCB(AbstractCallback):
-    callback = CallbackData('home', 'reply')
+    callback = CallbackData('home', 'reply', 'page')
 
     @classmethod
     def filter(cls) -> CallbackDataFilter:
         return cls._create_callback_filter()
 
     @classmethod
-    def new(cls, reply: bool = False) -> str:
-        return str(cls.callback.new(reply=reply))
+    def new(cls, reply: bool = False, page: int = 0) -> str:
+        return str(cls.callback.new(reply=reply, page=page))
 
 
 class NotificationCB(AbstractCallback):
@@ -77,7 +77,7 @@ class BroadcastCB(AbstractCallback):
 
     @classmethod
     def new(cls, message_id: int) -> str:
-        return str(cls.callback.new(message_id=str(message_id)))
+        return str(cls.callback.new(message_id=message_id))
 
 
 class StrEnum(str, Enum):

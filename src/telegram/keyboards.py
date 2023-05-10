@@ -5,9 +5,14 @@ from src.telegram.callbacks import Actions, AddNotificationCB, BroadcastCB, Home
     SettingsCB
 
 
-def start(notifications: list[NotificationModel]) -> InlineKeyboardMarkup:
+def start(notifications: list[NotificationModel], page: int = 0) -> InlineKeyboardMarkup:
+    notifications_per_page = 15
+
+    i_start = notifications_per_page * page
+    i_end = notifications_per_page * (page + 1)
+
     keyboard = InlineKeyboardMarkup()
-    for notification in sorted(notifications):
+    for notification in sorted(notifications)[i_start:i_end]:
 
         query = f'🔍 {notification.query} '
         if notification.min_price:
@@ -22,6 +27,15 @@ def start(notifications: list[NotificationModel]) -> InlineKeyboardMarkup:
         keyboard.add(
             InlineKeyboardButton(query.strip(), callback_data=NotificationCB.new(Actions.VIEW, notification.id))
         )
+
+    pagination = []
+    if page:
+        pagination.append(InlineKeyboardButton('<<', callback_data=HomeCB.new(page=page - 1)))
+    if len(notifications) > i_end:
+        pagination.append(InlineKeyboardButton('>>', callback_data=HomeCB.new(page=page + 1)))
+
+    if pagination:
+        keyboard.add(*pagination)
 
     keyboard.add(InlineKeyboardButton('➕ Suchbegriff hinzufügen', callback_data=AddNotificationCB.new()))
 
@@ -74,7 +88,7 @@ def deal_kb(deal_link: str, notification: NotificationModel) -> InlineKeyboardMa
     keyboard.row(
         InlineKeyboardButton('🗒️ Übersicht', callback_data=NotificationCB.new(Actions.VIEW, notification.id, True)),
         InlineKeyboardButton('❌ Löschen', callback_data=NotificationCB.new(Actions.DELETE, notification.id, True)),
-        InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new(True))
+        InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new(reply=True))
     )
 
     return keyboard
@@ -121,7 +135,7 @@ def home_button() -> InlineKeyboardMarkup:
 def broadcast_message(message_id: int) -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup()
     keyboard.row(
-        InlineKeyboardButton('✅ Ja', callback_data=BroadcastCB.new(message_id = message_id)),
+        InlineKeyboardButton('✅ Ja', callback_data=BroadcastCB.new(message_id=message_id)),
         InlineKeyboardButton('❌ Nein', callback_data=HomeCB.new())
     )
 
