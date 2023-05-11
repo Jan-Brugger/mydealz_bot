@@ -421,7 +421,7 @@ class TelegramBot:
                 text=message,
                 parse_mode=ParseMode.HTML,
                 reply_markup=keyboard,
-                disable_web_page_preview=True
+                # disable_web_page_preview=True
             )
         except (Unauthorized, ChatNotFound):
             logging.info('User %s blocked the bot. Disable him', notification.user_id)
