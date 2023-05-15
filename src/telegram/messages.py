@@ -108,7 +108,33 @@ def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
     if deal.price.amount:
         message += f'\n<b>Preis: {deal.price.amount:.2f} {deal.price.currency}</b>'
 
-    return message
+    return f'{message}{create_ref_link(deal.title)}'
+
+
+def create_ref_link(deal_title: str) -> str:
+    if 'topcashback' in deal_title.lower():
+        return '\n\nNoch keinen Topcashback-Account? ' \
+               'Dann würde ich mich freuen, wenn Du meinen Reflink zum registrieren nutzt: ' \
+               'https://www.topcashback.de/ref/weltraumpenner'
+
+    if 'shoop' in deal_title.lower():
+        return '\n\nNoch keinen Shoop-Account? ' \
+               'Dann würde ich mich freuen, wenn Du meinen Reflink zum registrieren nutzt: ' \
+               'https://www.shoop.de/invite/1uk4VFUgHW'
+
+    if 'ING' in deal_title and ('giro' in deal_title.lower() or 'depot' in deal_title.lower()):
+        return '\n\nNoch kein ING-Konto? ' \
+               'Dann würde ich mich freuen, wenn Du das Konto über meinen Reflink eröffnest.' \
+               '\nGirokonto: https://www.ing.de/girokontokwk/a/yA8qP8JmyB' \
+               '\nExtra-Konto: https://www.ing.de/kwkaktion/a/a4ffd5C4yB' \
+               '\nDepot: https://www.ing.de/depotkwk/a/sc2gSj0qyB'
+
+    if 'trade' in deal_title.lower() and 'republic' in deal_title.lower():
+        return '\n\nNoch kein Trade Republic Depot? ' \
+               'Dann würde ich mich freuen, wenn Du es über meinen Reflink eröffnest. ' \
+               'https://ref.trade.re/1jp9gtlf'
+
+    return ''
 
 
 def add_notification_inconclusive(text: str) -> str:

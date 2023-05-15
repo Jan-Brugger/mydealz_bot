@@ -6,7 +6,7 @@ from src.telegram.callbacks import Actions, AddNotificationCB, BroadcastCB, Home
 
 
 def start(notifications: list[NotificationModel], page: int = 0) -> InlineKeyboardMarkup:
-    notifications_per_page = 15
+    notifications_per_page = 30
 
     i_start = notifications_per_page * page
     i_end = notifications_per_page * (page + 1)
