@@ -112,7 +112,7 @@ class PepperFeed(ABC):
         deal.description = description
 
         try:
-            deal.image_url = entry['media_content'][0]['url']
+            deal.image_url = (entry['media_content'][0]['url']).replace('150x150/qt/55', '768x768/qt/60')
         except (KeyError, IndexError):
             pass
 
