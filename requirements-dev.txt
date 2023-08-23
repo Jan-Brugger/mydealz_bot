@@ -1,6 +1,6 @@
 -r requirements.txt
-mypy==1.2.0
-pre-commit==3.3.1
-pylint==2.17.4
+mypy==1.5.1
+pre-commit==3.3.3
+pylint==2.17.5
 pylint-quotes==0.2.3
-types-requests==2.30.0.0
+types-requests==2.31.0.2
