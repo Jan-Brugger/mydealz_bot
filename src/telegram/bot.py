@@ -118,7 +118,7 @@ class TelegramBot:
             user = await SQLiteUser().get_by_id(get_chat_id(telegram_object))
             await overwrite_or_answer(
                 telegram_object,
-                messages.settings(user),
+                'Einstellungen:',
                 reply_markup=keyboards.settings(user)
             )
 

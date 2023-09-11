@@ -7,7 +7,16 @@ from src.telegram.callbacks import Commands
 
 
 def start(user: UserModel) -> str:
-    return f'{settings(user)}\n' \
+    pages = ''
+    if user.search_mydealz:
+        pages += '\nmydealz.de'
+    if user.search_mindstar:
+        pages += '\nMindStar (mindfactory.de/Highlights/MindStar)'
+    if user.search_preisjaeger:
+        pages += '\npreisjaeger.at'
+
+    return f'Folgende Websites werden durchsucht:' \
+           f'{pages}\n\n' \
            f'Nutze /{Commands.SETTINGS} zum anpassen\n\n' \
            f'Folgende Suchbegriffe sind aktiv:'
 
@@ -155,22 +164,6 @@ def user_not_whitelisted() -> str:
 
 def user_blacklisted() -> str:
     return 'Du bist leider vom Bot blockiert worden. Tja. ¯\\_(ツ)_/¯'
-
-
-def settings(user: UserModel) -> str:
-    pages = []
-    if user.search_mydealz:
-        pages.append('mydealz.de')
-    if user.search_mindstar:
-        pages.append('MindStar (mindfactory.de/Highlights/MindStar)')
-    if user.search_preisjaeger:
-        pages.append('preisjaeger.at')
-
-    message = 'Folgende Websites werden durchsucht:'
-    for page in pages:
-        message.join(f'\n + {page}')
-
-    return message
 
 
 def broadcast_start() -> str:
