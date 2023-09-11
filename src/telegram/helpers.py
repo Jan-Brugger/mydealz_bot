@@ -4,7 +4,7 @@ from typing import Any, overload
 
 from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
-from aiogram.utils.exceptions import MessageCantBeEdited, TelegramAPIError
+from aiogram.utils.exceptions import MessageCantBeEdited, MessageToEditNotFound, TelegramAPIError
 
 from src.db.tables import SQLiteNotifications
 from src.models import NotificationModel
@@ -37,7 +37,7 @@ async def overwrite_or_answer(
             await message.edit_text(text, reply_markup=reply_markup, disable_web_page_preview=True)
 
             return
-    except MessageCantBeEdited:
+    except (MessageCantBeEdited, MessageToEditNotFound):
         pass
 
     await message.answer(text, reply_markup=reply_markup, disable_web_page_preview=True)
