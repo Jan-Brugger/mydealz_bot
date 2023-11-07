@@ -103,7 +103,11 @@ class PepperFeed(ABC):
         deal.merchant = entry.get('pepper_merchant', {}).get('name', '')
         deal.price = Price.fromstring(entry.get('pepper_merchant', {}).get('price', ''))
         deal.link = entry.get('link', '')
-        deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
+
+        try:
+            deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
+        except TypeError:
+            logging.warning('Got invalid date: %s', entry)
 
         description = entry.get('summary', '')
         if description.startswith('<strong>'):
@@ -167,7 +171,12 @@ class MindStarsFeed(AbstractFeed):
         deal.description = entry.get('summary', '')
         deal.price = Price.fromstring(entry.get('_price', ''))
         deal.link = entry.get('link', '')
-        deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
+
+        try:
+            deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
+        except TypeError:
+            logging.warning('Got invalid date: %s', entry)
+
         deal.image_url = entry.get('_image', '')
 
         return deal

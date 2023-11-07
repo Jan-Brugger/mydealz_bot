@@ -254,7 +254,7 @@ class DealModel(Model):
         self.__price: Price = Price.fromstring('')
         self.__link: str = ''
         self.__image_url: str = ''
-        self.__published: datetime | None = None
+        self.__published: datetime = datetime.min
 
     @property
     def title(self) -> str:
@@ -321,9 +321,6 @@ class DealModel(Model):
 
     @property
     def published(self) -> datetime:
-        if not self.__published:
-            raise NotImplementedError('Deal has no published-datetime')
-
         return self.__published
 
     @published.setter
