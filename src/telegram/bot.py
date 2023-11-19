@@ -16,7 +16,7 @@ from aiogram.contrib.fsm_storage.files import PickleStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message, ParseMode, Update
 from aiogram.utils import executor
-from aiogram.utils.exceptions import ChatNotFound, TelegramAPIError, Unauthorized
+from aiogram.utils.exceptions import ChatNotFound, MigrateToChat, TelegramAPIError, Unauthorized
 
 from src.config import Config
 from src.db.constants import UColumns
@@ -80,7 +80,6 @@ class TelegramBot:
                     telegram_object.from_user.locale
                 )
                 user = UserModel().parse_telegram_object(telegram_object)
-                logging.info('added user: %s', user.__dict__)
 
                 await SQLiteUser().upsert_model(user)
 
@@ -426,6 +425,19 @@ class TelegramBot:
         except (Unauthorized, ChatNotFound):
             logging.info('User %s blocked the bot. Disable him', notification.user_id)
             await SQLiteUser().set_user_state(notification.user_id, False)
+
+        except MigrateToChat as e:
+            try:
+                new_user = await SQLiteUser().get_by_id(e.migrate_to_chat_id)
+            except UserNotFoundError:
+                new_user = await SQLiteUser().get_by_id(notification.user_id)
+                new_user.id = e.migrate_to_chat_id
+                await SQLiteUser().upsert_model(new_user)
+                await SQLiteNotifications().copy_notifications_to_other_user(notification.user_id, new_user.id)
+
+            await SQLiteUser().delete_by_id(notification.user_id)
+
+            logging.info('Migrated user-id %s to %s', notification.user_id, new_user.id)
 
         except Exception as error:  # pylint: disable=broad-exception-caught
             await self.send_error(error, message=message)

@@ -125,6 +125,8 @@ class SQLiteUser(SQLiteTable):
         }
         await self._upsert(update)
 
+        logging.info('added user: %s', user.__dict__)
+
     async def get_by_id(self, user_id: int) -> UserModel:
         user = await self._fetch_by_id(user_id)
 
@@ -211,3 +213,9 @@ class SQLiteNotifications(SQLiteTable):
 
     async def count_notifications_by_user_id(self, user_id: int) -> int:
         return await self.count_rows_by_field(Tables.NOTIFICATIONS, NColumns.USER_ID, user_id)
+
+    async def copy_notifications_to_other_user(self, old_user_id: int, new_user_id: int) -> None:
+        all_notifications = await self.get_by_user_id(old_user_id)
+
+        for notification in all_notifications:
+            await self.save_notification(notification.query, new_user_id)
