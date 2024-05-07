@@ -157,30 +157,3 @@ class PreisjaegerHotFeed(PepperFeed, AbstractFeed):
     @classmethod
     def consider_deals(cls, notification: NotificationModel) -> bool:
         return notification.search_preisjaeger and notification.search_only_hot
-
-
-class MindStarsFeed(AbstractFeed):
-    _last_update = None
-    _feed = 'https://www.mindfactory.de/xml/rss/mindstar_artikel.xml'
-
-    @classmethod
-    def parse_deal(cls, entry: FeedParserDict) -> DealModel:
-        deal = DealModel()
-        deal.merchant = 'Mindfactory'
-        deal.title = entry.get('title', '')
-        deal.description = entry.get('summary', '')
-        deal.price = Price.fromstring(entry.get('_price', ''))
-        deal.link = entry.get('link', '')
-
-        try:
-            deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
-        except TypeError:
-            logging.warning('Got invalid date: %s', entry)
-
-        deal.image_url = entry.get('_image', '')
-
-        return deal
-
-    @classmethod
-    def consider_deals(cls, notification: NotificationModel) -> bool:
-        return notification.search_mindstar
