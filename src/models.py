@@ -24,7 +24,6 @@ class UserModel(Model):
         self.__first_name: str = ''
         self.__last_name: str = ''
         self.__search_mydealz: bool = True
-        self.__search_mindstar: bool = True
         self.__search_preisjaeger: bool = False
         self.__send_images: bool = True
         self.__active: bool = True
@@ -68,14 +67,6 @@ class UserModel(Model):
     @search_mydealz.setter
     def search_mydealz(self, value: bool) -> None:
         self.__search_mydealz = value
-
-    @property
-    def search_mindstar(self) -> bool:
-        return self.__search_mindstar
-
-    @search_mindstar.setter
-    def search_mindstar(self, value: bool) -> None:
-        self.__search_mindstar = value
 
     @property
     def search_preisjaeger(self) -> bool:
@@ -122,7 +113,6 @@ class NotificationModel(Model):
         self.__search_only_hot: bool = False
         self.__search_description: bool = False
         self.__search_mydealz: bool = True
-        self.__search_mindstar: bool = True
         self.__search_preisjaeger: bool = True
         self.__send_image: bool = True
 
@@ -218,14 +208,6 @@ class NotificationModel(Model):
     @search_mydealz.setter
     def search_mydealz(self, value: bool) -> None:
         self.__search_mydealz = value
-
-    @property
-    def search_mindstar(self) -> bool:
-        return self.__search_mindstar
-
-    @search_mindstar.setter
-    def search_mindstar(self, value: bool) -> None:
-        self.__search_mindstar = value
 
     @property
     def search_preisjaeger(self) -> bool:

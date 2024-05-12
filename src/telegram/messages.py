@@ -10,8 +10,6 @@ def start(user: UserModel) -> str:
     pages = ''
     if user.search_mydealz:
         pages += '\nmydealz.de'
-    if user.search_mindstar:
-        pages += '\nMindStar (mindfactory.de/Highlights/MindStar)'
     if user.search_preisjaeger:
         pages += '\npreisjaeger.at'
 
@@ -56,7 +54,6 @@ def help_msg() -> str:
         <b><u>Unterstützte Websites:</u></b>
         - mydealz.de
         - preisjaeger.at
-        - MindStar (mindfactory.de/Highlights/MindStar)
         mit /settings kann angepasst werden, welche Websites durchsucht werden sollen.
         '''
     )
@@ -84,7 +81,6 @@ def notification_overview(notification: NotificationModel) -> str:
         f'Minimaler Preis: {str(notification.min_price) + " €" if notification.min_price else "-"}\n'
         f'Maximaler Preis: {str(notification.max_price) + " €" if notification.max_price else "-"}\n'
         f'Reichweite: {search_range}\n'
-        f'Mindstar durchsuchen: {"Ja" if notification.search_mindstar else "Nein"}\n'
         f'Auch im Deal-Text suchen: {"Ja" if notification.search_description else "Nein"}'
     )
 

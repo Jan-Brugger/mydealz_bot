@@ -16,7 +16,6 @@ class UColumns(Columns):
     FIRST_NAME = 'first_name'
     LAST_NAME = 'last_name'
     SEARCH_MYDEALZ = 'search_md'
-    SEARCH_MINDSTAR = 'search_ms'
     SEARCH_PREISJAEGER = 'search_pj'
     ACTIVE = 'active'
     SEND_IMAGES = 'send_images'

@@ -104,7 +104,6 @@ class SQLiteUser(SQLiteTable):
         user.first_name = str(row[UColumns.FIRST_NAME])
         user.last_name = str(row[UColumns.LAST_NAME])
         user.search_mydealz = bool(row[UColumns.SEARCH_MYDEALZ])
-        user.search_mindstar = bool(row[UColumns.SEARCH_MINDSTAR])
         user.search_preisjaeger = bool(row[UColumns.SEARCH_PREISJAEGER])
         user.send_images = bool(row[UColumns.SEND_IMAGES])
         user.active = bool(row[UColumns.ACTIVE])
@@ -118,7 +117,6 @@ class SQLiteUser(SQLiteTable):
             UColumns.FIRST_NAME: user.first_name,
             UColumns.LAST_NAME: user.last_name,
             UColumns.SEARCH_MYDEALZ: user.search_mydealz,
-            UColumns.SEARCH_MINDSTAR: user.search_mindstar,
             UColumns.SEARCH_PREISJAEGER: user.search_preisjaeger,
             UColumns.SEND_IMAGES: user.send_images,
             UColumns.ACTIVE: user.active,
@@ -164,7 +162,6 @@ class SQLiteNotifications(SQLiteTable):
         notification.search_only_hot = bool(row[NColumns.ONLY_HOT])
         notification.search_description = bool(row[NColumns.SEARCH_DESCRIPTION])
         notification.search_mydealz = bool(row[UColumns.SEARCH_MYDEALZ])
-        notification.search_mindstar = bool(row[UColumns.SEARCH_MINDSTAR])
         notification.search_preisjaeger = bool(row[UColumns.SEARCH_PREISJAEGER])
         notification.send_image = bool(row[UColumns.SEND_IMAGES])
 

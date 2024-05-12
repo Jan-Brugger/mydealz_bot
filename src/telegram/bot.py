@@ -305,11 +305,6 @@ class TelegramBot:
             await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEARCH_MYDEALZ)
             await settings(query)
 
-        @dispatcher.callback_query_handler(SettingsCB.filter(action=SettingsActions.TOGGLE_MINDSTAR))
-        async def toggle_mindstar(query: CallbackQuery) -> None:
-            await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEARCH_MINDSTAR)
-            await settings(query)
-
         @dispatcher.callback_query_handler(SettingsCB.filter(action=SettingsActions.TOGGLE_PREISJAEGER))
         async def toggle_preisjaeger(query: CallbackQuery) -> None:
             await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEARCH_PREISJAEGER)
