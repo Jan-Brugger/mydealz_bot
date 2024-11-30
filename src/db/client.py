@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable, Iterable
-from sqlite3 import Row
+from sqlite3 import DatabaseError, Row
 from typing import Any, Union
 
 import aiosqlite
@@ -58,6 +58,7 @@ class SQLiteClient:
     ) -> Any:
         async with aiosqlite.connect(self.__db) as db:
             db.row_factory = self.dict_factory  # type:ignore
+            logging.info('execute SQL query: %s', query)
             cursor: Cursor = await db.execute(query, values)
             await db.commit()
             logging.debug('sqlite query executed successfully\nquery: %s\nvalues: %s', query, values)
@@ -111,7 +112,10 @@ class SQLiteClient:
         await self.__execute(f'ALTER TABLE {table_name} ADD {column} {_COLUMN_CONFIG[column]}')
 
     async def delete_column(self, table_name: Tables, column: str) -> None:
-        await self.__execute(f'ALTER TABLE {table_name} DROP {column}')
+        try:
+            await self.__execute(f'ALTER TABLE {table_name} DROP {column}')
+        except DatabaseError as error:
+            logging.error('Dropping column failed: %s', error)
 
     async def get_all_columns(self, table_name: Tables) -> list[str]:
         description = await self.fetch_description(f'SELECT * FROM {table_name} LIMIT 1')
