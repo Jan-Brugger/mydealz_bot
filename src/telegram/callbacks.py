@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABCMeta
+from abc import ABC
 from enum import Enum, auto
 from types import DynamicClassAttribute
 from typing import Any
@@ -12,11 +12,11 @@ ALLOWED_CHARACTERS = r'\w\!\[\]+-'
 ALLOWED_SEPARATORS = r' &,'
 
 
-class AbstractCallback(metaclass=ABCMeta):
+class AbstractCallback(ABC):
     callback: CallbackData
 
     @classmethod
-    def _create_callback_filter(cls, **kwargs: Any) -> CallbackDataFilter:
+    def _create_callback_filter(cls, **kwargs: Any) -> CallbackDataFilter:  # noqa: ANN401
         return cls.callback.filter(**{k: v for k, v in kwargs.items() if v is not None})
 
 
@@ -28,7 +28,7 @@ class HomeCB(AbstractCallback):
         return cls._create_callback_filter()
 
     @classmethod
-    def new(cls, reply: bool = False, page: int = 0) -> str:
+    def new(cls, *, reply: bool = False, page: int = 0) -> str:
         return str(cls.callback.new(reply=reply, page=page))
 
 
@@ -36,12 +36,25 @@ class NotificationCB(AbstractCallback):
     callback = CallbackData('notification', 'action', 'notification_id', 'reply')
 
     @classmethod
-    def filter(cls, action: Actions | None = None, notification_id: int | None = None) -> CallbackDataFilter:
-        return cls._create_callback_filter(action=action, notification_id=notification_id)
+    def filter(
+        cls,
+        action: Actions | None = None,
+        notification_id: int | None = None,
+    ) -> CallbackDataFilter:
+        return cls._create_callback_filter(
+            action=action,
+            notification_id=notification_id,
+        )
 
     @classmethod
-    def new(cls, action: Actions, notification_id: int, reply: bool = False) -> str:
-        return str(cls.callback.new(action=action, notification_id=notification_id, reply=reply))
+    def new(cls, action: Actions, notification_id: int, *, reply: bool = False) -> str:
+        return str(
+            cls.callback.new(
+                action=action,
+                notification_id=notification_id,
+                reply=reply,
+            ),
+        )
 
 
 class SettingsCB(AbstractCallback):
@@ -83,7 +96,7 @@ class BroadcastCB(AbstractCallback):
 class StrEnum(str, Enum):
     @DynamicClassAttribute
     def value(self) -> str:
-        return str(self._value_)  # pylint: disable=no-member
+        return str(self._value_)
 
 
 class Actions(StrEnum):

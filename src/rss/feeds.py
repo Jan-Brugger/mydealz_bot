@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 import re
 from abc import ABC, abstractmethod
 from datetime import datetime
-from os.path import isfile
+from pathlib import Path
 
 import requests
 from feedparser import FeedParserDict, parse
@@ -13,6 +15,8 @@ from urllib3.exceptions import HTTPError
 
 from src.config import Config
 from src.models import DealModel, NotificationModel
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractFeed(ABC):
@@ -24,33 +28,40 @@ class AbstractFeed(ABC):
         if cls._last_update:
             return cls._last_update
 
-        if isfile(cls.last_update_file()):
-            with open(cls.last_update_file(), 'r', encoding='utf-8') as last_update_file:
+        if Path.is_file(cls.last_update_file()):
+            with Path.open(
+                cls.last_update_file(),
+                encoding='utf-8',
+            ) as last_update_file:
                 file_content = last_update_file.read()
                 try:
                     return datetime.fromisoformat(file_content)
                 except ValueError:
-                    return datetime.fromtimestamp(float(file_content))
+                    return datetime.fromtimestamp(float(file_content), tz=Config.TIMEZONE)
 
-        return datetime.min
+        return datetime.min.replace(tzinfo=Config.TIMEZONE)
 
     @classmethod
     def set_last_update(cls, last_update: datetime) -> None:
         if last_update <= cls.get_last_update():
             return
 
-        logging.debug('update last-update from "%s" to "%s"', cls.get_last_update(), last_update)
+        logger.debug(
+            'update last-update from "%s" to "%s"',
+            cls.get_last_update(),
+            last_update,
+        )
 
         cls._last_update = last_update
-        mode = 'r+' if isfile(cls.last_update_file()) else 'w'
-        with open(cls.last_update_file(), mode, encoding='utf-8') as last_update_file:
+        mode = 'r+' if Path.is_file(cls.last_update_file()) else 'w'
+        with Path.open(cls.last_update_file(), mode, encoding='utf-8') as last_update_file:
             last_update_file.seek(0, 0)
             last_update_file.write(last_update.isoformat())
             last_update_file.close()
 
     @classmethod
-    def last_update_file(cls) -> str:
-        return f'{Config.FILE_DIR}/last_update_{cls.__name__}'
+    def last_update_file(cls) -> Path:
+        return Path(f'{Config.FILE_DIR}/last_update_{cls.__name__}')
 
     @classmethod
     @abstractmethod
@@ -61,17 +72,17 @@ class AbstractFeed(ABC):
     def parse_feed(cls, feed_content: bytes) -> list[DealModel]:
         feed = parse(feed_content)
         last_update_ts = cls.get_last_update()
-        last_update = datetime.min
+        last_update = datetime.min.replace(tzinfo=Config.TIMEZONE)
 
         deals = []
         for entry in feed['entries']:
             deal = cls.parse_deal(entry)
             if deal.title and deal.published > last_update_ts:
-                logging.debug('Added Deal with title "%s"', deal.title)
+                logger.debug('Added Deal with title "%s"', deal.title)
                 deals.append(deal)
                 last_update = max(last_update, deal.published)
 
-        logging.debug('Parsed %s, found %s new deals', cls._feed, len(deals))
+        logger.debug('Parsed %s, found %s new deals', cls._feed, len(deals))
 
         cls.set_last_update(last_update)
 
@@ -80,11 +91,14 @@ class AbstractFeed(ABC):
     @classmethod
     async def get_new_deals(cls) -> list[DealModel]:
         try:
-            response = requests.get(cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=30)
+            response = await asyncio.to_thread(
+                requests.get, url=cls._feed, headers={'User-Agent': 'Telegram-Bot'}, timeout=30
+            )
+
             return cls.parse_feed(response.content)
 
-        except (OSError, HTTPError) as error:
-            logging.error('Fetching %s failed. Error: %s', cls._feed, error)
+        except (OSError, HTTPError):
+            logger.exception('Fetching %s failed.', cls._feed)
 
         return []
 
@@ -94,7 +108,7 @@ class AbstractFeed(ABC):
         pass
 
 
-class PepperFeed(ABC):
+class PepperFeed:
     @classmethod
     def parse_deal(cls, entry: FeedParserDict) -> DealModel:
         deal = DealModel()
@@ -105,20 +119,24 @@ class PepperFeed(ABC):
         deal.link = entry.get('link', '')
 
         try:
-            deal.published = datetime.strptime(entry.get('published'), '%a, %d %b %Y %H:%M:%S %z').replace(tzinfo=None)
+            deal.published = datetime.strptime(
+                entry.get('published'),
+                '%a, %d %b %Y %H:%M:%S %z',
+            ).replace(tzinfo=None)
         except TypeError:
-            logging.warning('Got invalid date: %s', entry)
+            logger.warning('Got invalid date: %s', entry)
 
         description = entry.get('summary', '')
         if description.startswith('<strong>'):
             # Remove price and merchant
-            description = re.sub(r'<strong>.+?</strong>', '', description, 1)
+            description = re.sub(r'<strong>.+?</strong>', '', description, count=1)
         deal.description = description
 
-        try:
-            deal.image_url = (entry['media_content'][0]['url']).replace('150x150/qt/55', '768x768/qt/60')
-        except (KeyError, IndexError):
-            pass
+        with contextlib.suppress(KeyError, IndexError):
+            deal.image_url = (entry['media_content'][0]['url']).replace(
+                '150x150/qt/55',
+                '768x768/qt/60',
+            )
 
         return deal
 

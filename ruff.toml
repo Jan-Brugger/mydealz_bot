@@ -1,0 +1,26 @@
+line-length = 120
+
+[lint]
+preview = true
+select = ["ALL"]
+ignore = [
+    "COM812", # missing-trailing-comma
+    "CPY001", # missing-copyright-notice
+    "D1", # missing-docstring
+    "D203", # incorrect-blank-line-before-class
+    "D212", # multi-line-summary-first-line
+    "S608", # TODO remove
+    "TD002", # missing-todo-author
+    "TD003", # missing-todo-link
+
+]
+[lint.extend-per-file-ignores]
+"__init__.py" = [
+    "EXE002" # shebang-missing-executable-file
+]
+
+[format]
+quote-style = "single"
+
+[lint.flake8-quotes]
+inline-quotes = "single"

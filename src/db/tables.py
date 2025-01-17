@@ -2,14 +2,21 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from src.config import Config
 from src.db.client import RowType, SQLiteClient
 from src.db.constants import Columns, NColumns, Tables, UColumns
-from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserNotFoundError
+from src.exceptions import (
+    NotificationNotFoundError,
+    TooManyNotificationsError,
+    UserNotFoundError,
+)
 from src.models import Model, NotificationModel, UserModel
+
+logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
 
 
 class SQLiteTable(SQLiteClient, ABC):
@@ -20,7 +27,7 @@ class SQLiteTable(SQLiteClient, ABC):
 
     @property
     @abstractmethod
-    def _columns(self) -> list[Columns]:
+    def _columns(self) -> Sequence[Columns]:
         raise NotImplementedError
 
     @property
@@ -44,7 +51,7 @@ class SQLiteTable(SQLiteClient, ABC):
 
         return await self.update(
             f'INSERT OR REPLACE INTO `{self._table_name}`({fields}) VALUES ({",".join("?" * len(values))})',
-            values
+            values,
         )
 
     async def _fetch_all(self, where: str = '') -> list[Model]:
@@ -65,17 +72,23 @@ class SQLiteTable(SQLiteClient, ABC):
         return rows[0] if rows else None
 
     async def delete_by_id(self, sqlite_id: str | int) -> None:
-        await self.delete(f'DELETE FROM {self._table_name} WHERE {self._table_name}.ROWID == {sqlite_id}')
+        await self.delete(
+            f'DELETE FROM {self._table_name} WHERE {self._table_name}.ROWID == {sqlite_id}',
+        )
 
-    async def toggle_field(self, sqlite_id: str | int, field: UColumns | NColumns) -> None:
+    async def toggle_field(
+        self,
+        sqlite_id: str | int,
+        field: UColumns | NColumns,
+    ) -> None:
         await self.update(
-            f'UPDATE {self._table_name} SET {field} = abs({field}-1) WHERE {self._table_name}.ROWID == {sqlite_id}'
+            f'UPDATE {self._table_name} SET {field} = abs({field}-1) WHERE {self._table_name}.ROWID == {sqlite_id}',
         )
 
     async def init_table(self) -> None:
         if not await self.check_if_table_exists(self._table_name):
-            logging.info('Create table "%s"', self._table_name)
-            await self.create_table(self._table_name, self._columns)
+            logger.info('Create table "%s"', self._table_name)
+            await self.create_table(self._table_name, self._columns)  # type: ignore[arg-type]
 
         existing_column_names = await self.get_all_columns(self._table_name)
 
@@ -84,22 +97,27 @@ class SQLiteTable(SQLiteClient, ABC):
                 existing_column_names.remove(column)
                 continue
 
-            logging.info('Add column "%s" to "%s"', column, self._table_name)
+            logger.info('Add column "%s" to "%s"', column, self._table_name)
             await self.add_column(self._table_name, column)
 
         for deprecated_column in existing_column_names:
-            logging.info('Remove deprecated column "%s" from "%s"', deprecated_column, self._table_name)
+            logger.info(
+                'Remove deprecated column "%s" from "%s"',
+                deprecated_column,
+                self._table_name,
+            )
             await self.delete_column(self._table_name, deprecated_column)
 
 
 class SQLiteUser(SQLiteTable):
     _table_name = Tables.USERS
-    _columns = [col for col in UColumns]  # pylint: disable=unnecessary-comprehension
+    _columns: ClassVar[list[UColumns]] = list(UColumns)  # TODO: to tuple # noqa: FIX002 # type: ignore[assignment]
     _base_query = f'SELECT * FROM {_table_name}'
 
-    def _parse_row(self, row: RowType) -> UserModel:
+    @classmethod
+    def _parse_row(cls, row: RowType) -> UserModel:
         user = UserModel()
-        user.id = int(row[UColumns.USER_ID])  # type:ignore
+        user.id = int(row[UColumns.USER_ID])  # type: ignore[arg-type]
         user.username = str(row[UColumns.USERNAME])
         user.first_name = str(row[UColumns.FIRST_NAME])
         user.last_name = str(row[UColumns.LAST_NAME])
@@ -123,7 +141,7 @@ class SQLiteUser(SQLiteTable):
         }
         await self._upsert(update)
 
-        logging.info('added user: %s', user.__dict__)
+        logger.info('added user: %s', user.__dict__)
 
     async def get_by_id(self, user_id: int) -> UserModel:
         user = await self._fetch_by_id(user_id)
@@ -131,28 +149,34 @@ class SQLiteUser(SQLiteTable):
         if not user:
             raise UserNotFoundError(user_id)
 
-        return user  # type: ignore
+        return user  # type: ignore[return-value]
 
-    async def set_user_state(self, user_id: int, state: bool) -> None:
+    async def set_user_state(self, user_id: int, *, state: bool) -> None:
         await self.update(
-            f'UPDATE {self._table_name} SET {UColumns.ACTIVE} = {int(state)} WHERE {self._table_name}.ROWID == {user_id}'
+            f'UPDATE {self._table_name} SET {UColumns.ACTIVE} = {int(state)} '
+            f'WHERE {self._table_name}.ROWID == {user_id}',
         )
 
     async def get_all_active_user_ids(self) -> list[int]:
-        users: list[UserModel] = await self._fetch_all(where=f'{Tables.USERS}.{UColumns.ACTIVE} == 1')  # type: ignore
+        users: list[UserModel] = await self._fetch_all(  # type: ignore[assignment]
+            where=f'{Tables.USERS}.{UColumns.ACTIVE} == 1',
+        )
 
         return [user.id for user in users]
 
 
 class SQLiteNotifications(SQLiteTable):
     _table_name = Tables.NOTIFICATIONS
-    _columns = [col for col in NColumns]  # pylint: disable=unnecessary-comprehension
+    _columns: ClassVar[Sequence[NColumns]] = list(  # TODO: to tuple # noqa: FIX002 # type: ignore[assignment]
+        NColumns
+    )
     _base_query = (
         f'SELECT * FROM {_table_name} '
         f'INNER JOIN {Tables.USERS} ON {Tables.USERS}.{UColumns.USER_ID}={Tables.NOTIFICATIONS}.{NColumns.USER_ID}'
     )
 
-    def _parse_row(self, row: dict[NColumns | UColumns, Any]) -> NotificationModel:
+    @classmethod
+    def _parse_row(cls, row: dict[NColumns | UColumns, Any]) -> NotificationModel:
         notification = NotificationModel()
         notification.id = int(row[NColumns.NOTIFICATION_ID])
         notification.user_id = int(row[NColumns.USER_ID])
@@ -176,7 +200,12 @@ class SQLiteNotifications(SQLiteTable):
         notification.query = query
         notification.id = await self.upsert_model(notification)
 
-        logging.info('user %s added notification %s (%s)', notification.user_id, notification.id, notification.query)
+        logger.info(
+            'user %s added notification %s (%s)',
+            notification.user_id,
+            notification.id,
+            notification.query,
+        )
 
         return notification
 
@@ -193,7 +222,7 @@ class SQLiteNotifications(SQLiteTable):
         return await self._upsert(update, notification.id)
 
     async def get_all(self) -> list[NotificationModel]:
-        return await self._fetch_all(where=f'{Tables.USERS}.{UColumns.ACTIVE} == 1')  # type: ignore
+        return await self._fetch_all(where=f'{Tables.USERS}.{UColumns.ACTIVE} == 1')  # type: ignore[return-value]
 
     async def get_by_id(self, sqlite_id: int) -> NotificationModel:
         if not sqlite_id:
@@ -203,15 +232,23 @@ class SQLiteNotifications(SQLiteTable):
         if not notification:
             raise NotificationNotFoundError(sqlite_id)
 
-        return notification  # type: ignore
+        return notification  # type: ignore[return-value]
 
     async def get_by_user_id(self, user_id: int) -> list[NotificationModel]:
-        return await self._fetch_by_field(NColumns.USER_ID, user_id)  # type: ignore
+        return await self._fetch_by_field(NColumns.USER_ID, user_id)  # type: ignore[return-value]
 
     async def count_notifications_by_user_id(self, user_id: int) -> int:
-        return await self.count_rows_by_field(Tables.NOTIFICATIONS, NColumns.USER_ID, user_id)
+        return await self.count_rows_by_field(
+            Tables.NOTIFICATIONS,
+            NColumns.USER_ID,
+            user_id,
+        )
 
-    async def copy_notifications_to_other_user(self, old_user_id: int, new_user_id: int) -> None:
+    async def copy_notifications_to_other_user(
+        self,
+        old_user_id: int,
+        new_user_id: int,
+    ) -> None:
         all_notifications = await self.get_by_user_id(old_user_id)
 
         for notification in all_notifications:

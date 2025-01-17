@@ -4,46 +4,76 @@ import asyncio
 import html
 import json
 import logging
-import os
 import traceback
 from os import getenv
-from pickle import UnpicklingError
+from pathlib import Path
+from pickle import UnpicklingError  # noqa: S403
 from time import sleep
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.files import PickleStorage
-from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message, ParseMode, Update
 from aiogram.utils import executor
-from aiogram.utils.exceptions import ChatNotFound, MigrateToChat, TelegramAPIError, Unauthorized
+from aiogram.utils.exceptions import (
+    ChatNotFound,
+    MigrateToChat,
+    TelegramAPIError,
+    Unauthorized,
+)
 
 from src.config import Config
 from src.db.constants import UColumns
 from src.db.tables import SQLiteNotifications, SQLiteUser
-from src.exceptions import NotificationNotFoundError, TooManyNotificationsError, UserNotFoundError
+from src.exceptions import (
+    NotificationNotFoundError,
+    TooManyNotificationsError,
+    UserNotFoundError,
+)
 from src.models import DealModel, NotificationModel, UserModel
 from src.telegram import keyboards, messages
-from src.telegram.callbacks import ALLOWED_CHARACTERS, ALLOWED_SEPARATORS, Actions, AddNotificationCB, BroadcastCB, \
-    Commands, HomeCB, NotificationCB, SettingsActions, SettingsCB, States
+from src.telegram.callbacks import (
+    ALLOWED_CHARACTERS,
+    ALLOWED_SEPARATORS,
+    Actions,
+    AddNotificationCB,
+    BroadcastCB,
+    Commands,
+    HomeCB,
+    NotificationCB,
+    SettingsActions,
+    SettingsCB,
+    States,
+)
 from src.telegram.filters import BlacklistedFilter, NotWhitelistedFilter
-from src.telegram.helpers import finish_state, get_callback_var, get_chat_id, get_notification, overwrite_or_answer, \
-    store_notification_id
+from src.telegram.helpers import (
+    finish_state,
+    get_callback_var,
+    get_chat_id,
+    get_notification,
+    overwrite_or_answer,
+    store_notification_id,
+)
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from aiogram.dispatcher import FSMContext
 
 QUERY_PATTERN = rf'^[{ALLOWED_SEPARATORS}{ALLOWED_CHARACTERS}]+$'
 QUERY_PATTERN_LIMITED_CHARS = rf'^[{ALLOWED_SEPARATORS}{ALLOWED_CHARACTERS}]{{1,58}}$'
 PRICE_PATTERN = r'^\d+([,\.]\d{1,2})?$'
+MESSAGE_SPLIT_SIZE = 4096
 
 
-# pylint: disable=too-many-locals,too-many-statements
 class TelegramBot:
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: C901, PLR0915
         self.bot = Bot(token=Config.BOT_TOKEN, parse_mode=ParseMode.HTML)
 
         try:
             storage = PickleStorage(path=Config.CHAT_FILE)
         except UnpicklingError:
-            os.remove(Config.CHAT_FILE)
+            Path.unlink(Config.CHAT_FILE)  # type: ignore[arg-type]
             sleep(3)
             storage = PickleStorage(path=Config.CHAT_FILE)
 
@@ -51,48 +81,48 @@ class TelegramBot:
 
         @dispatcher.message_handler(NotWhitelistedFilter(), state='*')
         async def not_whitelisted(message: Message) -> None:
-            await SQLiteUser().set_user_state(get_chat_id(message), False)
+            await SQLiteUser().set_user_state(get_chat_id(message), state=False)
 
-            await message.answer(
-                messages.user_not_whitelisted()
-            )
+            await message.answer(messages.user_not_whitelisted())
 
         @dispatcher.message_handler(BlacklistedFilter(), state='*')
         async def blacklisted(message: Message) -> None:
-            await message.answer(
-                messages.user_blacklisted()
-            )
+            await message.answer(messages.user_blacklisted())
 
         @dispatcher.message_handler(commands=Commands.START, state='*')
         @dispatcher.callback_query_handler(HomeCB.filter(), state='*')
         async def start(
-                telegram_object: Message | CallbackQuery,
-                state: FSMContext | None = None,
-                callback_data: dict[str, Any] | None = None
+            telegram_object: Message | CallbackQuery,
+            state: FSMContext | None = None,
+            callback_data: dict[str, Any] | None = None,
         ) -> None:
             await finish_state(state)
 
             try:
                 user = await SQLiteUser().get_by_id(get_chat_id(telegram_object))
             except UserNotFoundError:
-                logging.info(
-                    'User started the bot first time.\nUser: %s\nLocale:%s', telegram_object.from_user,
-                    telegram_object.from_user.locale
+                logger.info(
+                    'User started the bot first time.\nUser: %s\nLocale:%s',
+                    telegram_object.from_user,
+                    telegram_object.from_user.locale,
                 )
                 user = UserModel().parse_telegram_object(telegram_object)
 
                 await SQLiteUser().upsert_model(user)
 
             if not user.active:
-                await SQLiteUser().set_user_state(user.id, True)
+                await SQLiteUser().set_user_state(user.id, state=True)
 
             notifications = await SQLiteNotifications().get_by_user_id(user.id)
 
             await overwrite_or_answer(
                 telegram_object=telegram_object,
                 text=messages.start(user),
-                reply_markup=keyboards.start(notifications, get_callback_var(callback_data, 'page', int)),
-                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool)
+                reply_markup=keyboards.start(
+                    notifications,
+                    get_callback_var(callback_data, 'page', int),
+                ),
+                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool),
             )
 
         @dispatcher.message_handler(commands=Commands.PING, state='*')
@@ -104,13 +134,13 @@ class TelegramBot:
             await overwrite_or_answer(
                 telegram_object,
                 messages.help_msg(),
-                reply_markup=keyboards.home_button()
+                reply_markup=keyboards.home_button(),
             )
 
         @dispatcher.message_handler(commands=Commands.SETTINGS, state='*')
         async def settings(
-                telegram_object: Message | CallbackQuery,
-                state: FSMContext | None = None
+            telegram_object: Message | CallbackQuery,
+            state: FSMContext | None = None,
         ) -> None:
             await finish_state(state)
 
@@ -118,13 +148,13 @@ class TelegramBot:
             await overwrite_or_answer(
                 telegram_object,
                 'Einstellungen:',
-                reply_markup=keyboards.settings(user)
+                reply_markup=keyboards.settings(user),
             )
 
         @dispatcher.message_handler(commands=Commands.BROADCAST, state='*')
         async def broadcast(
-                telegram_object: Message | CallbackQuery,
-                state: FSMContext | None = None
+            telegram_object: Message | CallbackQuery,
+            state: FSMContext | None = None,
         ) -> None:
             await finish_state(state)
 
@@ -139,14 +169,14 @@ class TelegramBot:
             await finish_state(state)
             await message.reply(
                 text=messages.broadcast_verify(),
-                reply_markup=keyboards.broadcast_message(message.message_id)
+                reply_markup=keyboards.broadcast_message(message.message_id),
             )
 
         @dispatcher.callback_query_handler(BroadcastCB.filter())
         async def broadcast_send(
-                query: CallbackQuery,
-                state: FSMContext,
-                callback_data: dict[str, Any]
+            query: CallbackQuery,
+            state: FSMContext,
+            callback_data: dict[str, Any],
         ) -> None:
             await finish_state(state)
 
@@ -157,21 +187,31 @@ class TelegramBot:
             users = await SQLiteUser().get_all_active_user_ids()
             sent_to = 0
             for user_id in users:
-                try:
-                    await self.bot.copy_message(
-                        chat_id=user_id,
-                        from_chat_id=getenv('OWN_ID'),
-                        message_id=message_id,
-                        disable_notification=True
-                    )
+                if await send_copy(user_id, message_id):
                     sent_to += 1
-                except (Unauthorized, ChatNotFound):
-                    logging.info('User %s blocked the bot. Disable him', user_id)
-                    await SQLiteUser().set_user_state(user_id, False)
-                except TelegramAPIError as error:
-                    logging.error('Failed to send broadcast-message. %s', error)
 
-            await overwrite_or_answer(query, messages.broadcast_sent(sent_to, len(users)))
+            await overwrite_or_answer(
+                query,
+                messages.broadcast_sent(sent_to, len(users)),
+            )
+
+        async def send_copy(user_id: int, message_id: int) -> bool:
+            try:
+                await self.bot.copy_message(
+                    chat_id=user_id,
+                    from_chat_id=getenv('OWN_ID'),
+                    message_id=message_id,
+                    disable_notification=True,
+                )
+            except (Unauthorized, ChatNotFound):
+                logger.info('User %s blocked the bot. Disable him', user_id)
+                await SQLiteUser().set_user_state(user_id, state=False)
+            except TelegramAPIError:
+                logger.exception('Failed to send broadcast-message')
+            else:
+                return True
+
+            return False
 
         @dispatcher.callback_query_handler(AddNotificationCB.filter(query=''))
         async def add_notification(query: CallbackQuery) -> None:
@@ -181,37 +221,47 @@ class TelegramBot:
         @dispatcher.message_handler(regexp=QUERY_PATTERN, state=States.ADD_NOTIFICATION)
         @dispatcher.callback_query_handler(AddNotificationCB.filter())
         async def process_add_notification(
-                telegram_object: Message | CallbackQuery,
-                state: FSMContext,
-                callback_data: dict[str, Any] | None = None
+            telegram_object: Message | CallbackQuery,
+            state: FSMContext,
+            callback_data: dict[str, Any] | None = None,
         ) -> None:
             await state.finish()
 
             notification_query = get_callback_var(callback_data, 'query', str) or telegram_object.text
             chat_id = get_chat_id(telegram_object)
-            notification = await SQLiteNotifications().save_notification(notification_query, chat_id)
+            notification = await SQLiteNotifications().save_notification(
+                notification_query,
+                chat_id,
+            )
 
             await overwrite_or_answer(
                 telegram_object,
                 messages.notification_added(notification),
-                reply_markup=keyboards.notification_commands(notification)
+                reply_markup=keyboards.notification_commands(notification),
             )
 
         @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.VIEW))
         async def show_notification(
-                query: CallbackQuery,
-                callback_data: dict[str, Any]
+            query: CallbackQuery,
+            callback_data: dict[str, Any],
         ) -> None:
             notification = await get_notification(callback_data)
             await overwrite_or_answer(
                 query.message,
                 messages.notification_overview(notification),
                 reply_markup=keyboards.notification_commands(notification),
-                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool)
+                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool),
             )
 
-        @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.UPDATE_QUERY), state='*')
-        async def edit_query(query: CallbackQuery, callback_data: dict[str, Any], state: FSMContext) -> None:
+        @dispatcher.callback_query_handler(
+            NotificationCB.filter(action=Actions.UPDATE_QUERY),
+            state='*',
+        )
+        async def edit_query(
+            query: CallbackQuery,
+            callback_data: dict[str, Any],
+            state: FSMContext,
+        ) -> None:
             await store_notification_id(state, callback_data)
             await States.EDIT_QUERY.set()
             await overwrite_or_answer(query.message, messages.query_instructions())
@@ -226,19 +276,27 @@ class TelegramBot:
             await overwrite_or_answer(
                 message,
                 messages.query_updated(notification),
-                reply_markup=keyboards.notification_commands(notification)
+                reply_markup=keyboards.notification_commands(notification),
             )
 
-        @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.UPDATE_MIN_PRICE), state='*')
+        @dispatcher.callback_query_handler(
+            NotificationCB.filter(action=Actions.UPDATE_MIN_PRICE),
+            state='*',
+        )
         async def edit_min_price(
-                query: CallbackQuery, callback_data: dict[str, Any], state: FSMContext
+            query: CallbackQuery,
+            callback_data: dict[str, Any],
+            state: FSMContext,
         ) -> None:
             await store_notification_id(state, callback_data)
             await States.EDIT_MIN_PRICE.set()
             await overwrite_or_answer(query.message, messages.price_instructions('Min'))
 
         @dispatcher.message_handler(regexp=PRICE_PATTERN, state=States.EDIT_MIN_PRICE)
-        @dispatcher.message_handler(commands=Commands.REMOVE, state=States.EDIT_MIN_PRICE)
+        @dispatcher.message_handler(
+            commands=Commands.REMOVE,
+            state=States.EDIT_MIN_PRICE,
+        )
         async def process_edit_min_price(message: Message, state: FSMContext) -> None:
             price = message.text
             if price == f'/{Commands.REMOVE}':
@@ -252,21 +310,29 @@ class TelegramBot:
             await overwrite_or_answer(
                 message,
                 messages.query_updated(notification),
-                keyboards.notification_commands(notification)
+                keyboards.notification_commands(notification),
             )
 
             await state.finish()
 
-        @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.UPDATE_MAX_PRICE), state='*')
+        @dispatcher.callback_query_handler(
+            NotificationCB.filter(action=Actions.UPDATE_MAX_PRICE),
+            state='*',
+        )
         async def edit_max_price(
-                query: CallbackQuery, callback_data: dict[str, Any], state: FSMContext
+            query: CallbackQuery,
+            callback_data: dict[str, Any],
+            state: FSMContext,
         ) -> None:
             await store_notification_id(state, callback_data)
             await States.EDIT_MAX_PRICE.set()
             await overwrite_or_answer(query.message, messages.price_instructions('Max'))
 
         @dispatcher.message_handler(regexp=PRICE_PATTERN, state=States.EDIT_MAX_PRICE)
-        @dispatcher.message_handler(commands=Commands.REMOVE, state=States.EDIT_MAX_PRICE)
+        @dispatcher.message_handler(
+            commands=Commands.REMOVE,
+            state=States.EDIT_MAX_PRICE,
+        )
         async def process_edit_max_price(message: Message, state: FSMContext) -> None:
             price = message.text
             if price == f'/{Commands.REMOVE}':
@@ -279,46 +345,65 @@ class TelegramBot:
             await overwrite_or_answer(
                 message,
                 messages.query_updated(notification),
-                keyboards.notification_commands(notification)
+                keyboards.notification_commands(notification),
             )
 
             await state.finish()
 
-        @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.TOGGLE_ONLY_HOT))
-        async def toggle_only_hot(query: CallbackQuery, callback_data: dict[str, Any]) -> None:
+        @dispatcher.callback_query_handler(
+            NotificationCB.filter(action=Actions.TOGGLE_ONLY_HOT),
+        )
+        async def toggle_only_hot(
+            query: CallbackQuery,
+            callback_data: dict[str, Any],
+        ) -> None:
             notification = await get_notification(callback_data)
             notification.search_only_hot = not notification.search_only_hot
             await SQLiteNotifications().upsert_model(notification)
 
             await show_notification(query, callback_data)
 
-        @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.TOGGLE_SEARCH_DESCR))
-        async def toggle_search_description(query: CallbackQuery, callback_data: dict[str, Any]) -> None:
+        @dispatcher.callback_query_handler(
+            NotificationCB.filter(action=Actions.TOGGLE_SEARCH_DESCR),
+        )
+        async def toggle_search_description(
+            query: CallbackQuery,
+            callback_data: dict[str, Any],
+        ) -> None:
             notification = await get_notification(callback_data)
             notification.search_description = not notification.search_description
             await SQLiteNotifications().upsert_model(notification)
 
             await show_notification(query, callback_data)
 
-        @dispatcher.callback_query_handler(SettingsCB.filter(action=SettingsActions.TOGGLE_MYDEALZ))
+        @dispatcher.callback_query_handler(
+            SettingsCB.filter(action=SettingsActions.TOGGLE_MYDEALZ),
+        )
         async def toggle_mydealz(query: CallbackQuery) -> None:
             await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEARCH_MYDEALZ)
             await settings(query)
 
-        @dispatcher.callback_query_handler(SettingsCB.filter(action=SettingsActions.TOGGLE_PREISJAEGER))
+        @dispatcher.callback_query_handler(
+            SettingsCB.filter(action=SettingsActions.TOGGLE_PREISJAEGER),
+        )
         async def toggle_preisjaeger(query: CallbackQuery) -> None:
-            await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEARCH_PREISJAEGER)
+            await SQLiteUser().toggle_field(
+                get_chat_id(query),
+                UColumns.SEARCH_PREISJAEGER,
+            )
             await settings(query)
 
-        @dispatcher.callback_query_handler(SettingsCB.filter(action=SettingsActions.TOGGLE_IMAGES))
+        @dispatcher.callback_query_handler(
+            SettingsCB.filter(action=SettingsActions.TOGGLE_IMAGES),
+        )
         async def toggle_images(query: CallbackQuery) -> None:
             await SQLiteUser().toggle_field(get_chat_id(query), UColumns.SEND_IMAGES)
             await settings(query)
 
         @dispatcher.callback_query_handler(NotificationCB.filter(action=Actions.DELETE))
         async def delete_notification(
-                query: CallbackQuery,
-                callback_data: dict[str, Any]
+            query: CallbackQuery,
+            callback_data: dict[str, Any],
         ) -> None:
             notification = await get_notification(callback_data)
             await SQLiteNotifications().delete_by_id(notification.id)
@@ -327,7 +412,7 @@ class TelegramBot:
                 telegram_object=query.message,
                 text=messages.notification_deleted(notification),
                 reply_markup=keyboards.home_button(),
-                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool)
+                reply_instead_of_edit=get_callback_var(callback_data, 'reply', bool),
             )
 
         @dispatcher.message_handler(regexp=QUERY_PATTERN_LIMITED_CHARS)
@@ -336,7 +421,7 @@ class TelegramBot:
             await overwrite_or_answer(
                 message,
                 messages.add_notification_inconclusive(text),
-                reply_markup=keyboards.add_notification_inconclusive(text)
+                reply_markup=keyboards.add_notification_inconclusive(text),
             )
 
         @dispatcher.message_handler(commands=Commands.CANCEL, state='*')
@@ -352,7 +437,7 @@ class TelegramBot:
                 await overwrite_or_answer(
                     message,
                     messages.notification_overview(notification),
-                    reply_markup=keyboards.notification_commands(notification)
+                    reply_markup=keyboards.notification_commands(notification),
                 )
 
             await finish_state(state)
@@ -371,21 +456,26 @@ class TelegramBot:
 
         @dispatcher.errors_handler()
         async def error_handler(update: Update, error: Exception) -> bool:
-            if isinstance(error, (NotificationNotFoundError, TooManyNotificationsError)):
+            if isinstance(
+                error,
+                NotificationNotFoundError | TooManyNotificationsError,
+            ):
                 error_mapping = {
                     NotificationNotFoundError: messages.notification_not_found(),
-                    TooManyNotificationsError: messages.too_many_notifications()
+                    TooManyNotificationsError: messages.too_many_notifications(),
                 }
                 error_message = error_mapping.get(type(error), '')
                 if update.callback_query:
-                    await update.callback_query.message.edit_reply_markup(reply_markup=None)
+                    await update.callback_query.message.edit_reply_markup(
+                        reply_markup=None,
+                    )
                     await update.callback_query.message.reply(error_message)
                 else:
                     await update.message.answer(error_message, reply_markup=None)
 
                 return True
 
-            logging.error('Update: %s\n\ncaused error: %s', update, error)
+            logger.error('Update: %s\n\ncaused error: %s', update, error)
             await self.send_error(error, update)
 
             return True
@@ -403,23 +493,19 @@ class TelegramBot:
                         photo=deal.image_url,
                         caption=message,
                         parse_mode=ParseMode.HTML,
-                        reply_markup=keyboard
+                        reply_markup=keyboard,
                     )
-
-                    return
                 except TelegramAPIError:
                     pass
+                else:
+                    return
 
             await self.bot.send_message(
-                chat_id=notification.user_id,
-                text=message,
-                parse_mode=ParseMode.HTML,
-                reply_markup=keyboard,
-                # disable_web_page_preview=True
+                chat_id=notification.user_id, text=message, parse_mode=ParseMode.HTML, reply_markup=keyboard
             )
         except (Unauthorized, ChatNotFound):
-            logging.info('User %s blocked the bot. Disable him', notification.user_id)
-            await SQLiteUser().set_user_state(notification.user_id, False)
+            logger.info('User %s blocked the bot. Disable him', notification.user_id)
+            await SQLiteUser().set_user_state(notification.user_id, state=False)
 
         except MigrateToChat as e:
             try:
@@ -428,41 +514,51 @@ class TelegramBot:
                 new_user = await SQLiteUser().get_by_id(notification.user_id)
                 new_user.id = e.migrate_to_chat_id
                 await SQLiteUser().upsert_model(new_user)
-                await SQLiteNotifications().copy_notifications_to_other_user(notification.user_id, new_user.id)
+                await SQLiteNotifications().copy_notifications_to_other_user(
+                    notification.user_id,
+                    new_user.id,
+                )
 
             await SQLiteUser().delete_by_id(notification.user_id)
 
-            logging.info('Migrated user-id %s to %s', notification.user_id, new_user.id)
+            logger.info('Migrated user-id %s to %s', notification.user_id, new_user.id)
 
-        except Exception as error:  # pylint: disable=broad-exception-caught
+        except TelegramAPIError as error:
             await self.send_error(error, message=message)
 
-    async def send_error(self,
-                         error: Exception,
-                         update: Update | None = None,
-                         message: str | None = None
-                         ) -> None:
+    async def send_error(
+        self,
+        error: Exception,
+        update: Update | None = None,
+        message: str | None = None,
+    ) -> None:
         own_id = getenv('OWN_ID')
 
         if not own_id:
             return
 
         if message:
-            error_message = \
+            error_message = (
                 f'An exception was raised while sending following message:\n<pre>{html.escape(message)}</pre>'
+            )
         else:
             error_message = 'An exception was raised while handling an update\n'
 
             if update:
-                error_message += \
-                    f'<pre>update = {html.escape(json.dumps(update.to_python(), indent=2, ensure_ascii=False))}</pre>\n\n'
+                update_string = {html.escape(json.dumps(update.to_python(), indent=2, ensure_ascii=False))}
+                error_message += f'<pre>update = {update_string}</pre>\n\n'
 
-        tb_string = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+        tb_string = ''.join(
+            traceback.format_exception(type(error), error, error.__traceback__),
+        )
         error_message += f'<pre>{html.escape(tb_string)}</pre>'
 
-        if len(error_message) > 4096:
-            for x in range(0, len(error_message), 4096):
-                await self.bot.send_message(chat_id=own_id, text=error_message[x:x + 4096])
+        if len(error_message) > MESSAGE_SPLIT_SIZE:
+            for x in range(0, len(error_message), MESSAGE_SPLIT_SIZE):
+                await self.bot.send_message(
+                    chat_id=own_id,
+                    text=error_message[x : x + MESSAGE_SPLIT_SIZE],
+                )
         else:
             await self.bot.send_message(chat_id=own_id, text=error_message)
 

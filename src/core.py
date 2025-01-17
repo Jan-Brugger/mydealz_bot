@@ -1,7 +1,6 @@
 import asyncio
 import logging
-import os
-from os.path import isdir
+from pathlib import Path
 
 from src.config import Config
 from src.db.tables import SQLiteTable
@@ -21,8 +20,8 @@ class Core:
 
     @classmethod
     def _create_files(cls) -> None:
-        if not isdir(Config.FILE_DIR):
-            os.makedirs(Config.FILE_DIR)
+        if not Path.is_dir(Config.FILE_DIR):  # type: ignore[arg-type]
+            Path.mkdir(Config.FILE_DIR, parents=True)  # type: ignore[arg-type]
 
     @classmethod
     def _init_logging(cls) -> None:
@@ -43,4 +42,4 @@ class Core:
     async def _init_database(cls) -> None:
         tables = SQLiteTable.__subclasses__()
         for table in tables:
-            await table().init_table()  # type: ignore
+            await table().init_table()  # type: ignore[abstract]

@@ -1,12 +1,12 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class Tables(str, Enum):
+class Tables(StrEnum):
     USERS = 'users'
     NOTIFICATIONS = 'notifications'
 
 
-class Columns(str, Enum):
+class Columns(StrEnum):
     pass
 
 

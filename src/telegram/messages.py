@@ -13,15 +13,17 @@ def start(user: UserModel) -> str:
     if user.search_preisjaeger:
         pages += '\npreisjaeger.at'
 
-    return f'Folgende Websites werden durchsucht:' \
-           f'{pages}\n\n' \
-           f'Nutze /{Commands.SETTINGS} zum anpassen\n\n' \
-           f'Folgende Suchbegriffe sind aktiv:'
+    return (
+        f'Folgende Websites werden durchsucht:'
+        f'{pages}\n\n'
+        f'Nutze /{Commands.SETTINGS} zum anpassen\n\n'
+        f'Folgende Suchbegriffe sind aktiv:'
+    )
 
 
 def help_msg() -> str:
     return textwrap.dedent(
-        '''
+        """
         <b><u>Suchbegriffe:</u></b>
         <b>-Groß- und Kleinschreibung werden nicht berücksichtigt
         - Leerzeichen werden entfernt
@@ -55,15 +57,17 @@ def help_msg() -> str:
         - mydealz.de
         - preisjaeger.at
         mit /settings kann angepasst werden, welche Websites durchsucht werden sollen.
-        '''
+        """  # noqa: E501,
     )
 
 
 def query_instructions() -> str:
-    return 'Bitte gebe eine Liste aus kommaseparierten Suchbegriffen ein.' \
-           '\nGültige Zeichen: (Buchstaben, Zahlen - , + & ! [ ])' \
-           '\n/help für mehr Details' \
-           '\n/cancel zum abbrechen'
+    return (
+        'Bitte gebe eine Liste aus kommaseparierten Suchbegriffen ein.'
+        '\nGültige Zeichen: (Buchstaben, Zahlen - , + & ! [ ])'
+        '\n/help für mehr Details'
+        '\n/cancel zum abbrechen'
+    )
 
 
 def invalid_query() -> str:
@@ -106,9 +110,11 @@ def notification_deleted(notification: NotificationModel) -> str:
 
 
 def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
-    message = f'Neuer Deal für "{notification.query}":\n' \
-              f'<b><a href="{deal.link}">{html.escape(deal.title)}</a></b>\n' \
-              f'{html.escape(deal.description[0:300])}...'
+    message = (
+        f'Neuer Deal für "{notification.query}":\n'
+        f'<b><a href="{deal.link}">{html.escape(deal.title)}</a></b>\n'
+        f'{html.escape(deal.description[0:300])}...'
+    )
 
     if deal.price.amount:
         message += f'\n<b>Preis: {deal.price.amount:.2f} {deal.price.currency}</b>'
@@ -118,26 +124,34 @@ def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
 
 def create_ref_link(deal_title: str) -> str:
     if 'topcashback' in deal_title.lower():
-        return '\n\nNoch keinen Topcashback-Account? ' \
-               'Dann würde ich mich freuen, wenn Du meinen Reflink zum registrieren nutzt: ' \
-               'https://www.topcashback.de/ref/weltraumpenner'
+        return (
+            '\n\nNoch keinen Topcashback-Account? '
+            'Dann würde ich mich freuen, wenn Du meinen Reflink zum registrieren nutzt: '
+            'https://www.topcashback.de/ref/weltraumpenner'
+        )
 
     if 'shoop' in deal_title.lower():
-        return '\n\nNoch keinen Shoop-Account? ' \
-               'Dann würde ich mich freuen, wenn Du meinen Reflink zum registrieren nutzt: ' \
-               'https://www.shoop.de/invite/1uk4VFUgHW'
+        return (
+            '\n\nNoch keinen Shoop-Account? '
+            'Dann würde ich mich freuen, wenn Du meinen Reflink zum registrieren nutzt: '
+            'https://www.shoop.de/invite/1uk4VFUgHW'
+        )
 
     if 'ING' in deal_title and ('giro' in deal_title.lower() or 'depot' in deal_title.lower()):
-        return '\n\nNoch kein ING-Konto? ' \
-               'Dann würde ich mich freuen, wenn Du das Konto über meinen Reflink eröffnest.' \
-               '\nGirokonto: https://www.ing.de/girokontokwk/a/yA8qP8JmyB' \
-               '\nExtra-Konto: https://www.ing.de/kwkaktion/a/a4ffd5C4yB' \
-               '\nDepot: https://www.ing.de/depotkwk/a/sc2gSj0qyB'
+        return (
+            '\n\nNoch kein ING-Konto? '
+            'Dann würde ich mich freuen, wenn Du das Konto über meinen Reflink eröffnest.'
+            '\nGirokonto: https://www.ing.de/girokontokwk/a/yA8qP8JmyB'
+            '\nExtra-Konto: https://www.ing.de/kwkaktion/a/a4ffd5C4yB'
+            '\nDepot: https://www.ing.de/depotkwk/a/sc2gSj0qyB'
+        )
 
     if 'trade' in deal_title.lower() and 'republic' in deal_title.lower():
-        return '\n\nNoch kein Trade Republic Depot? ' \
-               'Dann würde ich mich freuen, wenn Du es über meinen Reflink eröffnest. ' \
-               'https://ref.trade.re/1jp9gtlf'
+        return (
+            '\n\nNoch kein Trade Republic Depot? '
+            'Dann würde ich mich freuen, wenn Du es über meinen Reflink eröffnest. '
+            'https://ref.trade.re/1jp9gtlf'
+        )
 
     return ''
 

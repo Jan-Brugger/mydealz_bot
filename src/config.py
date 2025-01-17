@@ -1,5 +1,7 @@
 from os import getenv
+from typing import ClassVar
 
+import pytz
 from dotenv import load_dotenv
 
 
@@ -10,10 +12,11 @@ class Config:
     LOG_FILE = 'bot.log'
     CHAT_FILE = 'chat_data'
     DATABASE = 'sqlite_v2.db'
+    TIMEZONE = pytz.timezone('Europe/Berlin')
     PARSE_INTERVAL = 60
     NOTIFICATION_CAP = 50
-    WHITELIST: list[int] = []
-    BLACKLIST: list[int] = []
+    WHITELIST: ClassVar[list[int]] = []
+    BLACKLIST: ClassVar[list[int]] = []
 
     @classmethod
     def init(cls) -> None:
@@ -21,7 +24,8 @@ class Config:
 
         token = getenv('BOT_TOKEN')
         if not token:
-            raise NotImplementedError('Environment-variable BOT_TOKEN is missing!')
+            msg = 'Environment-variable BOT_TOKEN is missing!'
+            raise NotImplementedError(msg)
 
         cls.BOT_TOKEN = token
         cls.LOG_LEVEL = getenv('LOG_LEVEL') or cls.LOG_LEVEL

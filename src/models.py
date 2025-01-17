@@ -1,5 +1,3 @@
-# pylint: disable=too-many-instance-attributes
-
 from __future__ import annotations
 
 import re
@@ -9,6 +7,7 @@ from datetime import datetime
 from aiogram.types import CallbackQuery, Message
 from price_parser import Price
 
+from src.config import Config
 from src.telegram.callbacks import ALLOWED_CHARACTERS
 
 
@@ -92,7 +91,10 @@ class UserModel(Model):
     def active(self, value: bool) -> None:
         self.__active = value
 
-    def parse_telegram_object(self, telegram_object: Message | CallbackQuery) -> UserModel:
+    def parse_telegram_object(
+        self,
+        telegram_object: Message | CallbackQuery,
+    ) -> UserModel:
         chat = telegram_object.message.chat if isinstance(telegram_object, CallbackQuery) else telegram_object.chat
         self.id = chat.id
         self.username = chat.title or chat.username or ''
@@ -142,7 +144,7 @@ class NotificationModel(Model):
     @query.setter
     def query(self, value: str) -> None:
         value = (' '.join(value.split())).lower().replace('! ', '!')
-        queries = re.findall(fr'([&,])?\s*(!?[{ALLOWED_CHARACTERS}]+)', value)
+        queries = re.findall(rf'([&,])?\s*(!?[{ALLOWED_CHARACTERS}]+)', value)
 
         self.__query = ''.join([f'{q[0] or "&"}{q[1]}' for q in queries]).strip('&, ')
 
@@ -159,8 +161,8 @@ class NotificationModel(Model):
         for oq in or_queries:
             query: tuple[list[str], list[str]] = ([], [])
             for aq in oq.split('&'):
-                aq = aq.strip().replace('+', ' ')
-                if aq.startswith('!'):
+                aq_split = aq.strip().replace('+', ' ')
+                if aq_split.startswith('!'):
                     query[1].append(aq[1:])
                 else:
                     query[0].append(aq)
@@ -236,7 +238,7 @@ class DealModel(Model):
         self.__price: Price = Price.fromstring('')
         self.__link: str = ''
         self.__image_url: str = ''
-        self.__published: datetime = datetime.min
+        self.__published: datetime = datetime.min.replace(tzinfo=Config.TIMEZONE)
 
     @property
     def title(self) -> str:
@@ -245,7 +247,7 @@ class DealModel(Model):
 
         title = self.__title
         if title.lower().lstrip('[( ').startswith(self.__merchant.lower()):
-            title = title[title.lower().find(self.__merchant.lower()) + len(self.__merchant):].lstrip(')] ')
+            title = title[title.lower().find(self.__merchant.lower()) + len(self.__merchant) :].lstrip(')] ')
 
         return f'[{self.merchant}] {title}'
 

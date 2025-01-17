@@ -1,6 +1,6 @@
 -r requirements.txt
-mypy==1.13.0
-pre-commit==4.0.1
-pylint==3.3.1
-pylint-quotes==0.2.3
-types-requests==2.32.0.20241016
+mypy>=1.14
+pre-commit>=4.0
+ruff>=0.9
+types-pytz>=2024.2
+types-requests>=2.32
