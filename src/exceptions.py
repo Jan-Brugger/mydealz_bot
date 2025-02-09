@@ -1,13 +1,8 @@
 class NotificationNotFoundError(Exception):
-    def __init__(self, notification_id: int) -> None:
-        super().__init__(f'Notification with ID "{notification_id}" not found')
+    def __init__(self, user_id: int):
+        super().__init__("No notification with id %s", user_id)
 
 
 class UserNotFoundError(Exception):
-    def __init__(self, user_id: int) -> None:
-        super().__init__(f'User with ID "{user_id}" not found')
-
-
-class TooManyNotificationsError(Exception):
-    def __init__(self, user_id: int) -> None:
-        super().__init__(f'Notification Cap reached by: {user_id}')
+    def __init__(self, user_id: int):
+        super().__init__("No user with id %s", user_id)
