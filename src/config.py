@@ -11,13 +11,8 @@ if TYPE_CHECKING:
     from datetime import tzinfo
 
 load_dotenv()
-token = getenv("BOT_TOKEN")
 
-if not token:
-    msg = "Environment-variable BOT_TOKEN is missing!"
-    raise NotImplementedError(msg)
-
-BOT_TOKEN: str = token
+BOT_TOKEN: str = getenv("BOT_TOKEN", "")
 LOG_LEVEL: str = getenv("LOG_LEVEL", "INFO")
 FILE_DIR: Path = Path(getenv("FILE_DIR", "./files").rstrip("/"))
 LOG_FILE: Path = FILE_DIR / "bot.log"

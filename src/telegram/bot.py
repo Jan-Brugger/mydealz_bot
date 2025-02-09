@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 class TelegramBot:
+    if not config.BOT_TOKEN:
+        msg = "Environment-variable BOT_TOKEN is missing!"
+        raise NotImplementedError(msg)
+
     bot = Bot(
         token=config.BOT_TOKEN,
         default=DefaultBotProperties(
