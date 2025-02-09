@@ -1,12 +1,16 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.3.0
+    rev: v5.0.0
     hooks:
+      - id: check-toml
       - id: check-yaml
-      - id: double-quote-string-fixer
+      - id: debug-statements
       - id: end-of-file-fixer
-#      - id: no-commit-to-branch
+      - id: name-tests-test
+        args: [--pytest-test-first]
+      - id: pretty-format-json
       - id: requirements-txt-fixer
+      - id: sort-simple-yaml
       - id: trailing-whitespace
   - repo: local
     hooks:
@@ -15,9 +19,22 @@ repos:
         entry: mypy
         language: python
         'types': [ python ]
-
-      - id: pylint
-        name: Pylint
-        entry: pylint
+      - id: ruff
+        name: ruff
+        description: "Run 'ruff check'"
+        entry: ruff check
+        args: [--fix, --unsafe-fixes]
         language: python
-        'types': [ python ]
+        types_or: [ python, pyi, jupyter ]
+      - id: ruff-format
+        name: ruff-format
+        description: "Run 'ruff format'"
+        entry: ruff format --force-exclude
+        language: python
+        types_or: [ python, pyi, jupyter ]
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: python
+        pass_filenames: false
+        always_run: true

@@ -99,3 +99,4 @@ venv
 
 # bot-files (auto-generated)
 files
+src/aiohttp

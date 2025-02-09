@@ -1,34 +1,42 @@
 import asyncio
-import threading
-from datetime import datetime
+import logging
+from datetime import datetime, timedelta
+from threading import Event, Thread
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-from src.config import Config
+from src import config
 from src.core import Core
-from src.rss.parser import Parser
+from src.rss.feedparser import FeedParser
 from src.telegram.bot import TelegramBot
 
+logger = logging.getLogger(__name__)
 
-def parse_job() -> None:
-    loop = asyncio.new_event_loop()
-    app_scheduler = AsyncIOScheduler(event_loop=loop, timezone='Europe/Berlin')
-    app_scheduler.add_job(
-        Parser().run,
-        'interval',
-        seconds=Config.PARSE_INTERVAL,
-        max_instances=50,
-        next_run_time=datetime.now()
-    )
-    app_scheduler.start()
-
-    try:
-        loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        pass
+exit_event = Event()
 
 
-if __name__ == '__main__':
+class ParseJob(Thread):
+    run_job = True
+
+    def run(self) -> None:  # noqa: PLR6301
+        try:
+            while not exit_event.is_set():
+                try:
+                    asyncio.run(FeedParser.run())
+                except Exception:
+                    logger.exception("Error while parsing / sending deals")
+
+                logger.info(
+                    "Next feedparser-run: %s",
+                    datetime.now(tz=config.TIMEZONE) + timedelta(seconds=config.PARSE_INTERVAL),
+                )
+                exit_event.wait(config.PARSE_INTERVAL)
+        except (KeyboardInterrupt, SystemExit):
+            pass
+
+
+if __name__ == "__main__":
     Core.init()
-    threading.Thread(target=parse_job).start()
-    TelegramBot().run()
+    thread = ParseJob()
+    thread.start()
+
+    asyncio.run(TelegramBot.run_bot())
+    exit_event.set()

@@ -1,36 +1,25 @@
+from __future__ import annotations
+
 from os import getenv
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
+from pytz import timezone
 
+if TYPE_CHECKING:
+    from datetime import tzinfo
 
-class Config:
-    BOT_TOKEN = ''
-    LOG_LEVEL = 'INFO'
-    FILE_DIR = 'files/'
-    LOG_FILE = 'bot.log'
-    CHAT_FILE = 'chat_data'
-    DATABASE = 'sqlite_v2.db'
-    PARSE_INTERVAL = 60
-    NOTIFICATION_CAP = 50
-    WHITELIST: list[int] = []
-    BLACKLIST: list[int] = []
+load_dotenv()
 
-    @classmethod
-    def init(cls) -> None:
-        load_dotenv()
-
-        token = getenv('BOT_TOKEN')
-        if not token:
-            raise NotImplementedError('Environment-variable BOT_TOKEN is missing!')
-
-        cls.BOT_TOKEN = token
-        cls.LOG_LEVEL = getenv('LOG_LEVEL') or cls.LOG_LEVEL
-        cls.FILE_DIR = (getenv('FILE_DIR') or cls.FILE_DIR).rstrip('/')
-        cls.LOG_FILE = f'{cls.FILE_DIR}/{getenv("LOG_FILE") or cls.LOG_FILE}'
-        cls.CHAT_FILE = f'{cls.FILE_DIR}/{getenv("CHAT_FILE") or cls.CHAT_FILE}'
-        cls.DATABASE = f'{cls.FILE_DIR}/{getenv("DATABASE") or cls.DATABASE}'
-        interval = getenv('PARSE_INTERVAL')
-        cls.PARSE_INTERVAL = int(interval) if interval else cls.PARSE_INTERVAL
-        cls.NOTIFICATION_CAP = int(getenv('NOTIFICATION_CAP') or cls.NOTIFICATION_CAP)
-        cls.WHITELIST = [int(x.strip()) for x in getenv('WHITELIST', '').split(',') if x.strip()]
-        cls.BLACKLIST = [int(x.strip()) for x in getenv('BLACKLIST', '').split(',') if x.strip()]
+BOT_TOKEN: str = getenv("BOT_TOKEN", "")
+LOG_LEVEL: str = getenv("LOG_LEVEL", "INFO")
+FILE_DIR: Path = Path(getenv("FILE_DIR", "./files").rstrip("/"))
+LOG_FILE: Path = FILE_DIR / "bot.log"
+DATABASE: Path = FILE_DIR / "sqlite_v3.db"
+PARSE_INTERVAL: int = int(getenv("PARSE_INTERVAL") or 60)
+NOTIFICATION_CAP: int = int(getenv("NOTIFICATION_CAP") or 50)
+WHITELIST: list[int] = [int(x.strip()) for x in getenv("WHITELIST", "").split(",") if x.strip()]
+BLACKLIST: list[int] = [int(x.strip()) for x in getenv("BLACKLIST", "").split(",") if x.strip()]
+TIMEZONE: tzinfo = timezone(getenv("TIMEZONE", "Europe/Berlin"))
+OWN_ID: int | None = int(own_id) if (own_id := getenv("OWN_ID")) else None
