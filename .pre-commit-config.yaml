@@ -7,6 +7,7 @@ repos:
       - id: debug-statements
       - id: end-of-file-fixer
       - id: name-tests-test
+        args: [--pytest-test-first]
       - id: pretty-format-json
       - id: requirements-txt-fixer
       - id: sort-simple-yaml
@@ -31,3 +32,9 @@ repos:
         entry: ruff format --force-exclude
         language: python
         types_or: [ python, pyi, jupyter ]
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: python
+        pass_filenames: false
+        always_run: true

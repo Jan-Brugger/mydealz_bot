@@ -1,198 +1,180 @@
+from collections.abc import Sequence
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.models import NotificationModel, UserModel
 from src.telegram.callbacks import (
-    Actions,
     AddNotificationCB,
     BroadcastCB,
+    DeleteNotificationCB,
     HomeCB,
-    NotificationCB,
-    SettingsActions,
-    SettingsCB,
+    NewNotificationCB,
+    ToggleHotOnlyCB,
+    ToggleSearchDescriptionCB,
+    ToggleSearchMydealz,
+    ToggleSearchPreisjaeger,
+    ToggleSendImages,
+    UpdateMaxPriceCB,
+    UpdateMinPriceCB,
+    UpdateQueryCB,
+    ViewNotificationCB,
 )
 
 
-def start(
-    notifications: list[NotificationModel],
-    page: int = 0,
-) -> InlineKeyboardMarkup:
-    notifications_per_page = 30
+class Keyboards:
+    @staticmethod
+    def home_button() -> InlineKeyboardButton:
+        return InlineKeyboardButton(text="🏠 Home", callback_data=HomeCB().pack())
 
-    i_start = notifications_per_page * page
-    i_end = notifications_per_page * (page + 1)
+    @staticmethod
+    def start(
+        notifications: Sequence[NotificationModel],
+        page: int = 0,
+    ) -> InlineKeyboardMarkup:
+        notifications_per_page = 30
 
-    keyboard = InlineKeyboardMarkup()
-    for notification in sorted(notifications)[i_start:i_end]:
-        query = f'🔍 {notification.query} '
-        if notification.min_price:
-            query += '💸'
-        if notification.max_price:
-            query += '💰'
-        if notification.search_only_hot:
-            query += '🌶️'
-        if notification.search_description:
-            query += '🔍'
+        i_start = notifications_per_page * page
+        i_end = notifications_per_page * (page + 1)
 
-        keyboard.add(
-            InlineKeyboardButton(
-                query.strip(),
-                callback_data=NotificationCB.new(Actions.VIEW, notification.id),
-            ),
+        keyboard = []
+        for notification in sorted(notifications)[i_start:i_end]:
+            query = f"🔍 {notification.query} "
+            if notification.min_price:
+                query += "💸"
+            if notification.max_price:
+                query += "💰"
+            if notification.search_hot_only:
+                query += "🌶️"
+            if notification.search_description:
+                query += "🔎"
+
+            keyboard.append(
+                [InlineKeyboardButton(text=query, callback_data=ViewNotificationCB(id=notification.id).pack())]
+            )
+
+        pagination = []
+        if page:
+            pagination.append(
+                InlineKeyboardButton(text="<<", callback_data=HomeCB(page=page - 1).pack()),
+            )
+        if len(notifications) > i_end:
+            pagination.append(
+                InlineKeyboardButton(text=">>", callback_data=HomeCB(page=page + 1).pack()),
+            )
+
+        if pagination:
+            keyboard.append(pagination)
+
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text="➕ Suchbegriff hinzufügen",  # noqa: RUF001
+                    callback_data=NewNotificationCB().pack(),
+                )
+            ]
         )
 
-    pagination = []
-    if page:
-        pagination.append(
-            InlineKeyboardButton('<<', callback_data=HomeCB.new(page=page - 1)),
-        )
-    if len(notifications) > i_end:
-        pagination.append(
-            InlineKeyboardButton('>>', callback_data=HomeCB.new(page=page + 1)),
-        )
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-    if pagination:
-        keyboard.add(*pagination)
+    @staticmethod
+    def settings(user: UserModel) -> InlineKeyboardMarkup:
+        def settings_text(text: str, *, cur_state: bool) -> str:
+            return f"{'✅' if cur_state else '❌'} {text}"
 
-    keyboard.add(
-        InlineKeyboardButton(
-            '➕ Suchbegriff hinzufügen',  # noqa: RUF001
-            callback_data=AddNotificationCB.new(),
-        ),
-    )
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    text=settings_text("mydealz.de", cur_state=user.search_mydealz),
+                    callback_data=ToggleSearchMydealz().pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=settings_text("preisjaeger.at", cur_state=user.search_preisjaeger),
+                    callback_data=ToggleSearchPreisjaeger().pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=settings_text("Deal-Bilder", cur_state=user.send_images),
+                    callback_data=ToggleSendImages().pack(),
+                )
+            ],
+            [InlineKeyboardButton(text="🏠 Home", callback_data=HomeCB().pack())],
+        ]
 
-    return keyboard
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
+    @staticmethod
+    def notification_commands(notification: NotificationModel) -> InlineKeyboardMarkup:
+        hot_toggle_text = "🌶️ Nur heiße Deals" if notification.search_hot_only else "🆕 Alle Deals"
+        search_descr_toggle_text = "🔍 Titel & Beschreibung" if notification.search_description else "🧐 Nur Titel"
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    text="✏️️ Suchbegriff ändern", callback_data=UpdateQueryCB(id=notification.id).pack()
+                ),
+                InlineKeyboardButton(text="❌ Löschen", callback_data=DeleteNotificationCB(id=notification.id).pack()),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="💸 Minimalpreis ändern", callback_data=UpdateMinPriceCB(id=notification.id).pack()
+                ),
+                InlineKeyboardButton(
+                    text="💰 Maximalpreis ändern", callback_data=UpdateMaxPriceCB(id=notification.id).pack()
+                ),
+            ],
+            [
+                InlineKeyboardButton(text=hot_toggle_text, callback_data=ToggleHotOnlyCB(id=notification.id).pack()),
+                InlineKeyboardButton(
+                    text=search_descr_toggle_text, callback_data=ToggleSearchDescriptionCB(id=notification.id).pack()
+                ),
+            ],
+            [
+                InlineKeyboardButton(text="➕ Suchbegriff hinzufügen", callback_data=NewNotificationCB().pack()),  # noqa: RUF001
+                InlineKeyboardButton(text="🏠 Home", callback_data=HomeCB().pack()),
+            ],
+        ]
 
-def notification_commands(notification: NotificationModel) -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup()
-    keyboard.row(
-        InlineKeyboardButton(
-            '✏️️ Suchbegriff ändern',
-            callback_data=NotificationCB.new(Actions.UPDATE_QUERY, notification.id),
-        ),
-        InlineKeyboardButton(
-            '❌ Löschen',
-            callback_data=NotificationCB.new(Actions.DELETE, notification.id),
-        ),
-    )
-    keyboard.row(
-        InlineKeyboardButton(
-            '💸 Minimalpreis ändern',
-            callback_data=NotificationCB.new(Actions.UPDATE_MIN_PRICE, notification.id),
-        ),
-        InlineKeyboardButton(
-            '💰 Maximalpreis ändern',
-            callback_data=NotificationCB.new(Actions.UPDATE_MAX_PRICE, notification.id),
-        ),
-    )
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-    hot_toggle_text = '🌶️ Nur heiße Deals' if notification.search_only_hot else '🆕 Alle Deals'
+    @staticmethod
+    def add_notification_inconclusive(text: str) -> InlineKeyboardMarkup:
+        keyboard = [
+            [
+                InlineKeyboardButton(text="✅ Ja", callback_data=AddNotificationCB(query=text).pack()),
+                InlineKeyboardButton(text="❌ Nein", callback_data=HomeCB().pack()),
+            ]
+        ]
 
-    keyboard.row(
-        InlineKeyboardButton(
-            hot_toggle_text,
-            callback_data=NotificationCB.new(Actions.TOGGLE_ONLY_HOT, notification.id),
-        ),
-        InlineKeyboardButton(
-            '➕ Suchbegriff hinzufügen',  # noqa: RUF001
-            callback_data=AddNotificationCB.new(),
-        ),
-    )
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-    search_descr_toggle_text = '🔍 Titel & Beschreibung' if notification.search_description else '🧐 Nur Titel'
+    @staticmethod
+    def deal_kb(deal_link: str, notification: NotificationModel) -> InlineKeyboardMarkup:
+        keyboard = [
+            [InlineKeyboardButton(text="Zum Deal", url=deal_link)],
+            [
+                InlineKeyboardButton(
+                    text="🗒️ Übersicht",
+                    callback_data=ViewNotificationCB(id=notification.id, reply=True).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="❌ Löschen",
+                    callback_data=DeleteNotificationCB(id=notification.id, reply=True).pack(),
+                ),
+                InlineKeyboardButton(text="🏠 Home", callback_data=HomeCB(reply=True).pack()),
+            ],
+        ]
 
-    keyboard.row(
-        InlineKeyboardButton(
-            search_descr_toggle_text,
-            callback_data=NotificationCB.new(
-                Actions.TOGGLE_SEARCH_DESCR,
-                notification.id,
-            ),
-        ),
-        InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new()),
-    )
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-    return keyboard
+    @staticmethod
+    def broadcast_message(message_id: int) -> InlineKeyboardMarkup:
+        keyboard = [
+            [
+                InlineKeyboardButton(text="✅ Ja", callback_data=BroadcastCB(message_id=message_id).pack()),
+                InlineKeyboardButton(text="❌ Nein", callback_data=HomeCB().pack()),
+            ]
+        ]
 
-
-def deal_kb(deal_link: str, notification: NotificationModel) -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup()
-    keyboard.row(
-        InlineKeyboardButton('Zum Deal', url=deal_link),
-    )
-    keyboard.row(
-        InlineKeyboardButton(
-            '🗒️ Übersicht',
-            callback_data=NotificationCB.new(Actions.VIEW, notification.id, reply=True),
-        ),
-        InlineKeyboardButton(
-            '❌ Löschen',
-            callback_data=NotificationCB.new(Actions.DELETE, notification.id, reply=True),
-        ),
-        InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new(reply=True)),
-    )
-
-    return keyboard
-
-
-def add_notification_inconclusive(text: str) -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup()
-    keyboard.row(
-        InlineKeyboardButton('✅ Ja', callback_data=AddNotificationCB.new(query=text)),
-        InlineKeyboardButton('❌ Nein', callback_data=HomeCB.new()),
-    )
-
-    return keyboard
-
-
-def settings(user: UserModel) -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup()
-
-    toggles = [
-        (
-            SettingsCB.new(action=SettingsActions.TOGGLE_MYDEALZ),
-            user.search_mydealz,
-            'mydealz.de',
-        ),
-        (
-            SettingsCB.new(action=SettingsActions.TOGGLE_PREISJAEGER),
-            user.search_preisjaeger,
-            'preisjaeger.at',
-        ),
-        (
-            SettingsCB.new(action=SettingsActions.TOGGLE_IMAGES),
-            user.send_images,
-            'Deal-Bilder',
-        ),
-    ]
-    for toggle in toggles:
-        keyboard.add(
-            InlineKeyboardButton(
-                f'✅ {toggle[2]}' if toggle[1] else f'❌ {toggle[2]}',
-                callback_data=toggle[0],
-            ),
-        )
-
-    keyboard.add(InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new()))
-
-    return keyboard
-
-
-def home_button() -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton('🏠 Home', callback_data=HomeCB.new()))
-
-    return keyboard
-
-
-def broadcast_message(message_id: int) -> InlineKeyboardMarkup:
-    keyboard = InlineKeyboardMarkup()
-    keyboard.row(
-        InlineKeyboardButton(
-            '✅ Ja',
-            callback_data=BroadcastCB.new(message_id=message_id),
-        ),
-        InlineKeyboardButton('❌ Nein', callback_data=HomeCB.new()),
-    )
-
-    return keyboard
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)

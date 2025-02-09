@@ -2,7 +2,7 @@
 
 ### Requirements
 
-* Python 3.11
+* Python 3.13
 * Docker
 
 ### Installing
@@ -70,10 +70,14 @@ Delete Docker container:
 
     docker rm mydealz_bot
 
-### Validate code syntax with pylint
+### Auto format code with ruff
 
-    pylint ./*.py src
+    ruff format && ruff check --fix --unsafe-fixes
+
+### Validate code syntax with ruff
+
+    ruff check
 
 ### Validate static typing
 
-    mypy daemon.py
+    mypy app.py

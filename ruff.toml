@@ -8,19 +8,30 @@ ignore = [
     "CPY001", # missing-copyright-notice
     "D1", # missing-docstring
     "D203", # incorrect-blank-line-before-class
-    "D212", # multi-line-summary-first-line
+    "D213", # multi-line-summary-second-line
+    "D413", # missing-blank-line-after-last-section
     "S608", # TODO remove
     "TD002", # missing-todo-author
     "TD003", # missing-todo-link
-
+    "ANN204", # missing-return-type-special-method
 ]
+
 [lint.extend-per-file-ignores]
 "__init__.py" = [
-    "EXE002" # shebang-missing-executable-file
+    "EXE002", # shebang-missing-executable-file
+]
+"tests/*" = [
+    "S101", # assert
+    "SLF001", # private-member-access
+    "PLR0913", # too-many-arguments
+    "PLR0917", # too-many-positional-arguments
+]
+"tests/**/conftest.py" = [
+    "E501", # line-too-long
 ]
 
 [format]
-quote-style = "single"
+quote-style = "double"
 
 [lint.flake8-quotes]
-inline-quotes = "single"
+inline-quotes = "double"

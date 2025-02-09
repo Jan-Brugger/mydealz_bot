@@ -38,16 +38,3 @@ This is a Docker container to run a telegram bot that tracks mydealz.de for new 
         environment:
           - BOT_TOKEN=<<YOUR_BOT_TOKEN>>
           - OWN_ID=<<YOUR_TELEGRAM_ID>>
-
-### Troubleshooting
-
-**"can't initialize time"-error on Raspberry Pi**
-
-Update libseccomp2.deb
-- Find latest libseccomp2.deb on http://ftp.us.debian.org/debian/pool/main/libs/libseccomp
-
-- Download and install
-
-      cd /tmp
-      wget http://ftp.us.debian.org/debian/pool/main/libs/libseccomp/libseccomp2_2.5.0-3_armhf.deb
-      sudo dpkg -i libseccomp2_2.5.0-3_armhf.deb
