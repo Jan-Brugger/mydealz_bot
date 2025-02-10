@@ -5,11 +5,12 @@ from contextlib import suppress
 from aiogram import Bot, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import ExceptionTypeFilter
-from aiogram.types import ErrorEvent, Message
+from aiogram.types import CallbackQuery, ErrorEvent, Message
 
 from src import config
 from src.exceptions import NotificationNotFoundError
 from src.telegram.messages import Messages
+from src.telegram.routers import overwrite_or_answer
 
 error_router = Router()
 
@@ -18,27 +19,16 @@ logger = logging.getLogger(__name__)
 
 @error_router.error(ExceptionTypeFilter(NotificationNotFoundError))
 async def notification_not_found(error: ErrorEvent) -> bool:
-    if (callback_query := error.update.callback_query) and callback_query.message:
-        message = callback_query.message
-    elif error.update.message:
-        message = error.update.message
-    else:
+    telegram_object = error.update.callback_query or error.update.message
+
+    if not telegram_object:
         return False
 
-    error_text = Messages.notification_not_found()
-
-    if isinstance(message, Message):
+    if isinstance(telegram_object, CallbackQuery) and isinstance(telegram_object.message, Message):
         with suppress(TelegramAPIError):
-            await message.delete_reply_markup()
+            await telegram_object.message.delete_reply_markup()
 
-        try:
-            await message.edit_text(text=error_text)
-        except TelegramAPIError:
-            pass
-        else:
-            return True
-
-    await message.answer(text=error_text)
+    await overwrite_or_answer(telegram_object, Messages.notification_not_found())
 
     return True
 

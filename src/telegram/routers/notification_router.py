@@ -26,7 +26,7 @@ from src.telegram.messages import Messages
 from src.telegram.patterns import PRICE_PATTERN, QUERY_PATTERN, QUERY_PATTERN_LIMITED_CHARS
 from src.telegram.routers import get_id, overwrite_or_answer, store_id
 from src.telegram.states import States
-from src.utils import prettify_query
+from src.utils import is_valid_regex_query, prettify_query
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -47,6 +47,7 @@ async def new_notification(callback_query: CallbackQuery, state: FSMContext) -> 
 
 
 @notification_router.message(States.ADD_NOTIFICATION, F.text.regexp(QUERY_PATTERN))
+@notification_router.message(States.ADD_NOTIFICATION, F.text.func(is_valid_regex_query))
 @notification_router.callback_query(AddNotificationCB.filter())
 async def add_notification(
     telegram_object: Message | CallbackQuery,
@@ -97,8 +98,10 @@ async def update_query(
 
 
 @notification_router.message(States.UPDATE_QUERY, F.text.regexp(QUERY_PATTERN))
+@notification_router.message(States.UPDATE_QUERY, F.text.func(is_valid_regex_query))
 async def process_update_query(message: Message, state: FSMContext) -> None:
     if not message.text:
+        logger.error("Empty message text in process update should not be possible")
         return
 
     notification = NotificationClient().update_query(
@@ -224,14 +227,14 @@ def __message_to_price(price_str: str | None) -> int:
 
 
 @notification_router.message(F.text.regexp(QUERY_PATTERN_LIMITED_CHARS))
+@notification_router.message(F.text.func(is_valid_regex_query))
 async def add_notification_inconclusive(message: Message) -> None:
-    text = message.text
-
-    if not text:
+    if not message.text:
+        logger.error("Empty message text in inconclusive update should not be possible")
         return
 
     await overwrite_or_answer(
         message,
-        Messages.add_notification_inconclusive(text),
-        reply_markup=Keyboards.add_notification_inconclusive(text),
+        Messages.add_notification_inconclusive(message.text),
+        reply_markup=Keyboards.add_notification_inconclusive(message.text),
     )

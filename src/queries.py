@@ -53,4 +53,7 @@ class RegexQuery(Query):
         self._regex_query = re.compile(query.removeprefix("r/").strip(), flags=re.IGNORECASE)
 
     def matches(self, text: str) -> bool:
-        return bool(re.search(self._regex_query, text))
+        try:
+            return bool(re.search(self._regex_query, text))
+        except re.error:
+            return False
