@@ -7,7 +7,8 @@ repos:
       - id: debug-statements
       - id: end-of-file-fixer
       - id: name-tests-test
-        args: [--pytest-test-first]
+        args: [ --pytest-test-first ]
+      - id: no-commit-to-branch
       - id: pretty-format-json
       - id: requirements-txt-fixer
       - id: sort-simple-yaml
@@ -23,7 +24,7 @@ repos:
         name: ruff
         description: "Run 'ruff check'"
         entry: ruff check
-        args: [--fix, --unsafe-fixes]
+        args: [ --fix, --unsafe-fixes ]
         language: python
         types_or: [ python, pyi, jupyter ]
       - id: ruff-format
