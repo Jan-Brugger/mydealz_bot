@@ -5,8 +5,20 @@ import re
 from src.models import PriceModel
 
 
-def prettify_query(query: str) -> str:
+def is_valid_regex_query(query: str) -> bool:
     if query.startswith("r/"):
+        try:
+            re.compile(query.lstrip("r/"))
+        except re.error:
+            pass
+        else:
+            return True
+
+    return False
+
+
+def prettify_query(query: str) -> str:
+    if is_valid_regex_query(query):
         return query
 
     query = " ".join(query.split()).lower()  # remove unnecessary whitespaces and lower
