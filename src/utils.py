@@ -4,9 +4,11 @@ import re
 
 from src.models import PriceModel
 
+HTML_TAG_EXPRESSION = re.compile(r"<.*?>")
 
-def is_valid_regex_query(query: str) -> bool:
-    if query.startswith("r/"):
+
+def is_valid_regex_query(query: str | None) -> bool:
+    if query and query.startswith("r/"):
         try:
             re.compile(query.lstrip("r/"))
         except re.error:
@@ -40,3 +42,9 @@ def parse_price(price_str: str) -> PriceModel:
         amount = float(f"{''.join(price_split[0:-1])}.{price_split[-1]}")
 
     return PriceModel(amount=amount, currency="€")
+
+
+def remove_html_tags(text: str) -> str:
+    text = re.sub(HTML_TAG_EXPRESSION, " ", text)  # remove html tags
+
+    return " ".join(text.split())  # remove and strip spaces

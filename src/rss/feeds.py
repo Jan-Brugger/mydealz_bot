@@ -13,7 +13,7 @@ from urllib3.exceptions import HTTPError
 
 from src import config
 from src.models import DealModel, NotificationModel, UserModel
-from src.utils import parse_price
+from src.utils import parse_price, remove_html_tags
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +136,7 @@ class PepperFeed:
             # Remove price and merchant
             description = re.sub(r"<strong>.+?</strong>", "", description, count=1)
 
-        return description
+        return remove_html_tags(description)
 
 
 class MyDealzAllFeed(PepperFeed, AbstractFeed):
