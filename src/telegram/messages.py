@@ -51,6 +51,8 @@ class Messages:
 
             <b>Für eine Regex-Suche (case-insensitive), nutze r/:</b>
             "r/1\d{2} ?PS" sucht nach der RegEx "1\d{2} ?PS" und liefert Deals mit z.B. "150 PS", "120ps", "180 pS", ...
+            Die Regex-Suche kann auch genutzt werden, um nach den reservierten Zeichen (+,&) für normale Queries zu suchen.
+            Um z.B. nach Deals für eine Synology DS423+ zu suchen kann "r/ds423\+" genutzt werden.
 
             <b><u>Minimaler Preis:</u></b>
             Nur Benachrichtigungen für Deals mit höherer oder ohne Preisangabe

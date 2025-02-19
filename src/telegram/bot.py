@@ -3,7 +3,12 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramForbiddenError, TelegramMigrateToChat
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramForbiddenError,
+    TelegramMigrateToChat,
+    TelegramNotFound,
+)
 
 from src import config
 from src.db.db_client import DbClient
@@ -60,7 +65,7 @@ class TelegramBot:
         if send_message:
             try:
                 await bot.send_message(chat_id=user.id, text=message, reply_markup=keyboard, request_timeout=5)
-            except (TelegramForbiddenError, TelegramBadRequest):
+            except (TelegramForbiddenError, TelegramNotFound):
                 logger.info("User %s blocked the bot. Disable him", notification.user_id)
                 UserClient.disable(user.id)
             except TelegramMigrateToChat as e:

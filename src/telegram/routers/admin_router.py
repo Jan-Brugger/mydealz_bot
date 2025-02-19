@@ -4,7 +4,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from aiogram import Bot, Router
-from aiogram.exceptions import TelegramAPIError, TelegramMigrateToChat, TelegramNotFound, TelegramUnauthorizedError
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramForbiddenError,
+    TelegramMigrateToChat,
+    TelegramNotFound,
+)
 from aiogram.filters import Command
 
 from src import config
@@ -77,7 +82,7 @@ async def send_copy(bot: Bot, user_id: int, message_id: int) -> bool:
             message_id=message_id,
             disable_notification=True,
         )
-    except (TelegramUnauthorizedError, TelegramNotFound):
+    except (TelegramForbiddenError, TelegramNotFound):
         logger.info("User %s blocked the bot. Disable him", user_id)
         UserClient.disable(user_id)
     except TelegramMigrateToChat as e:
