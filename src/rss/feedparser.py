@@ -72,7 +72,7 @@ class FeedParser:
         if notification.queries.any_match(search_text):
             logger.info(
                 "searched query (%s) found in (%s) - send deal to user %s",
-                notification.query,
+                notification.search_query,
                 search_text,
                 notification.user_id,
             )

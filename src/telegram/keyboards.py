@@ -38,7 +38,7 @@ class Keyboards:
 
         keyboard = []
         for notification in sorted(notifications)[i_start:i_end]:
-            query = f"🔍 {notification.query} "
+            query = f"🔍 {notification.search_query} "
             if notification.min_price:
                 query += "💸"
             if notification.max_price:

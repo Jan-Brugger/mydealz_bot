@@ -64,7 +64,7 @@ async def add_notification(
     else:
         return
 
-    notification = NotificationModel(query=prettify_query(query), user_id=event_chat.id)
+    notification = NotificationModel(search_query=prettify_query(query), user_id=event_chat.id)
     notification = NotificationClient().add(notification)
 
     await overwrite_or_answer(

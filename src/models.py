@@ -25,7 +25,7 @@ class NotificationModel(SQLModel, table=True):
     __tablename__ = "notifications"
 
     id: int = Field(default=None, primary_key=True)
-    query: str
+    search_query: str
     min_price: int | None = None
     max_price: int | None = None
     search_hot_only: bool = False
@@ -33,11 +33,11 @@ class NotificationModel(SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id", ondelete="CASCADE")
 
     def __lt__(self, other: NotificationModel) -> bool:
-        return self.query.lower() < other.query.lower()
+        return self.search_query.lower() < other.search_query.lower()
 
     @property
     def queries(self) -> Queries:
-        return Queries(self.query)
+        return Queries(self.search_query)
 
 
 class PriceModel(BaseModel):

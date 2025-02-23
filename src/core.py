@@ -4,10 +4,6 @@ import sqlite3
 from src import config
 from src.config import DATABASE, FILE_DIR
 from src.db.db_client import DbClient
-from src.db.notification_client import NotificationClient
-from src.db.user_client import UserClient
-from src.models import NotificationModel, UserModel
-from src.utils import prettify_query
 
 
 class Core:
@@ -39,44 +35,37 @@ class Core:
 
     @classmethod
     def _init_database(cls) -> None:
-        migrate_db = (FILE_DIR / "sqlite_v2.db").is_file() and not DATABASE.is_file()
+        db_exists = DATABASE.is_file()
         DbClient.init_db()
-
-        if migrate_db:
-            cls.migrate_db()
+        if not db_exists:
+            if (FILE_DIR / "sqlite_v3.db").is_file():
+                cls.migrate_from_v3()
+            elif (FILE_DIR / "sqlite_v2.db").is_file():
+                cls.migrate_from_v2()
 
     @classmethod
-    def migrate_db(cls) -> None:
-        con = sqlite3.connect(FILE_DIR / "sqlite_v2.db")
-        cur = con.cursor()
-
-        for user in cur.execute(
-            "SELECT u_id, username, first_name, last_name, search_md, search_pj, active, send_images FROM users"
-        ):
-            user_model = UserModel(
-                id=int(user[0]),
-                username=str(user[1]),
-                first_name=str(user[2]),
-                last_name=str(user[3]),
-                search_mydealz=bool(user[4]),
-                search_preisjaeger=bool(user[5]),
-                active=bool(user[6]),
-                send_images=bool(user[7]),
+    def migrate_from_v2(cls) -> None:
+        with sqlite3.connect(config.DATABASE) as con:
+            cur = con.cursor()
+            cur.execute(f"ATTACH DATABASE '{FILE_DIR / 'sqlite_v2.db'}' AS old;")
+            cur.execute(
+                "INSERT INTO users(id, username, first_name, last_name, search_mydealz, search_preisjaeger, send_images, active) "  # noqa: E501
+                "SELECT u_id, username, first_name, last_name, search_md, search_pj, send_images, active FROM old.users;"  # noqa: E501
             )
-
-            UserClient.add(user_model)
-
-        for notification in cur.execute(
-            "SELECT n_id, query, min_price, max_price, hot_only, search_descr, user_id FROM notifications"
-        ):
-            notification_model = NotificationModel(
-                id=int(notification[0]),
-                query=prettify_query(str(notification[1])),
-                min_price=int(notification[2]),
-                max_price=int(notification[3]),
-                search_hot_only=bool(notification[4]),
-                search_description=bool(notification[5]),
-                user_id=int(notification[6]),
+            cur.execute(
+                "INSERT INTO notifications(id, search_query, min_price, max_price, search_hot_only, search_description, user_id) "  # noqa: E501
+                "SELECT n_id, query, min_price, max_price, hot_only, search_descr, user_id FROM old.notifications;"
             )
+            con.commit()
 
-            NotificationClient.add(notification_model)
+    @classmethod
+    def migrate_from_v3(cls) -> None:
+        with sqlite3.connect(config.DATABASE) as con:
+            cur = con.cursor()
+            cur.execute(f"ATTACH DATABASE '{FILE_DIR / 'sqlite_v3.db'}' AS old;")
+            cur.execute("INSERT INTO users SELECT * FROM old.users;")
+            cur.execute(
+                "INSERT INTO notifications(id, search_query, min_price, max_price, search_hot_only, search_description, user_id) "  # noqa: E501
+                "SELECT id, query, min_price, max_price, search_hot_only, search_description, user_id FROM old.notifications;"  # noqa: E501
+            )
+            con.commit()

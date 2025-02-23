@@ -59,7 +59,7 @@ class NotificationClient(DbClient):
     def update_query(cls, notification_id: int, new_query: str) -> NotificationModel:
         with Session(cls._engine) as session:
             notification = cls._fetch(session, notification_id)
-            notification.query = new_query
+            notification.search_query = new_query
             return cls._update(session, notification)
 
     @classmethod

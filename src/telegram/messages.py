@@ -96,7 +96,7 @@ class Messages:
     def notification_overview(notification: NotificationModel) -> str:
         search_range = "Nur heiße Deals" if notification.search_hot_only else "Alle Deals"
         return (
-            f"Suchbegriff: {notification.query}\n"
+            f"Suchbegriff: {notification.search_query}\n"
             f"Minimaler Preis: {str(notification.min_price) + ' €' if notification.min_price else '-'}\n"
             f"Maximaler Preis: {str(notification.max_price) + ' €' if notification.max_price else '-'}\n"
             f"Reichweite: {search_range}\n"
@@ -121,12 +121,12 @@ class Messages:
 
     @staticmethod
     def notification_deleted(notification: NotificationModel) -> str:
-        return f'Suchbegriff "{notification.query}" gelöscht'
+        return f'Suchbegriff "{notification.search_query}" gelöscht'
 
     @staticmethod
     def deal_msg(deal: DealModel, notification: NotificationModel) -> str:
         message = (
-            f'Neuer Deal für "{notification.query}":\n'
+            f'Neuer Deal für "{notification.search_query}":\n'
             f'<b><a href="{deal.link}">{html.escape(deal.full_title)}</a></b>\n'
             f"{html.escape(deal.description[0:300])}..."
         )

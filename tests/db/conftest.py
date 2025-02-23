@@ -37,14 +37,14 @@ def users(user0: UserModel, user1: UserModel) -> tuple[UserModel, UserModel]:
 
 @pytest.fixture
 def notification0(user0: UserModel) -> NotificationModel:
-    return NotificationModel(id=1, query="test query 1", user_id=user0.id)
+    return NotificationModel(id=1, search_query="test query 1", user_id=user0.id)
 
 
 @pytest.fixture
 def notification1(user0: UserModel) -> NotificationModel:
     return NotificationModel(
         id=7,
-        query="test query 2",
+        search_query="test query 2",
         user_id=user0.id,
         min_price=10,
         max_price=100,
@@ -57,7 +57,7 @@ def notification1(user0: UserModel) -> NotificationModel:
 def notification2(user1: UserModel) -> NotificationModel:
     return NotificationModel(
         id=13,
-        query="test query 3",
+        search_query="test query 3",
         user_id=user1.id,
         min_price=20,
         max_price=None,
@@ -70,7 +70,7 @@ def notification2(user1: UserModel) -> NotificationModel:
 def notification3(user2: UserModel) -> NotificationModel:
     return NotificationModel(
         id=18,
-        query="inactive user",
+        search_query="inactive user",
         user_id=user2.id,
         min_price=20,
         max_price=None,
