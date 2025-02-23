@@ -77,7 +77,7 @@ class TelegramBot:
                     logger.info("Chat %s not found. Disable user.", user.id)
                     UserClient.disable(user.id)
                 else:
-                    logger.exception("Unexpected exception")
+                    logger.exception("Unexpected exception. User: %s. Message: %s", user.id, message)
             except TelegramAPIError:
                 logger.exception("Could not send deal")
 

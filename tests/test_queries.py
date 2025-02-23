@@ -26,3 +26,7 @@ def test_queries(
     assert Queries(prettify_query("BIO-Dinkelbrot")).any_match(deal4.search_title)
 
     assert not Queries(prettify_query("Kein Match ")).any_match(deal5.search_title)
+
+    assert Queries(prettify_query(" Pentax+ ")).any_match(deal5.search_title)
+
+    assert not Queries(prettify_query("Neu+")).any_match(deal1.search_title)

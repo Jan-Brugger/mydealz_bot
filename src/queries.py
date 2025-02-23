@@ -37,10 +37,10 @@ class AndQuery(Query):
         self._contains_not: set[str] = set()
 
         for query in query_string.split("&"):
-            stripped_query = query.replace("+", " ").strip()
+            stripped_query = query.strip().replace("+", " ")
 
             if stripped_query.startswith("!"):
-                self._contains_not.add(stripped_query.strip(" !"))
+                self._contains_not.add(stripped_query.lstrip(" !"))
             else:
                 self._contains.add(stripped_query)
 

@@ -12,6 +12,7 @@ def test_prettify_query() -> None:
         == "!try, to & make & !hgg, incompatible & symbols"
     )
     assert prettify_query("&what & happens! & !with!this ! query") == "what & happens & !with & !this & !query"
+    assert prettify_query(" NEU+  ") == "neu+"
 
 
 def test_parse_price() -> None:
