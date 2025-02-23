@@ -17,6 +17,12 @@ def test_queries(
 
     assert Queries(prettify_query(r"r/1\d{2} ?PS")).any_match(deal1.search_title)
 
+    assert not Queries(prettify_query(r"r/1\d{2} ?ps")).any_match(deal1.search_title)
+
+    assert Queries(prettify_query(r"r/1\d{2} ?PS/i")).any_match(deal1.search_title)
+
+    assert Queries(prettify_query(r"r/1\d{2} ?PS\/i")).any_match(deal1.search_title)
+
     assert not Queries(prettify_query("Skoda+Octavia !automatik")).any_match(deal1.search_title)
 
     assert Queries(prettify_query("2für1, 2+für+1")).any_match(deal2.search_title)

@@ -45,12 +45,21 @@ class AndQuery(Query):
                 self._contains.add(stripped_query)
 
     def matches(self, text: str) -> bool:
+        text = text.lower()
+
         return not any(cn in text for cn in self._contains_not) and all(c in text for c in self._contains)
 
 
 class RegexQuery(Query):
     def __init__(self, query: str):
-        self._regex_query = re.compile(query.removeprefix("r/").strip(), flags=re.IGNORECASE)
+        flags = 0
+        query = query.strip().removeprefix("r/")
+
+        if query.endswith(r"/i"):
+            flags = re.IGNORECASE
+            query = query.removesuffix(r"/i").rstrip("\\")
+
+        self._regex_query = re.compile(query, flags=flags)
 
     def matches(self, text: str) -> bool:
         try:

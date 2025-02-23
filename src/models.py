@@ -68,8 +68,8 @@ class DealModel(BaseModel):
 
     @property
     def search_title(self) -> str:
-        return " ".join(self.full_title.lower().split())
+        return " ".join(self.full_title.split())
 
     @property
     def search_title_and_description(self) -> str:
-        return self.search_title + " ".join(self.description.lower().split())
+        return self.search_title + " ".join(self.description.split())
