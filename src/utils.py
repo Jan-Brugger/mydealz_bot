@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import logging
 import re
 
+from price_parser import Price
+
 from src.models import PriceModel
+
+logger = logging.getLogger(__name__)
 
 
 def is_valid_regex_query(query: str | None) -> bool:
@@ -31,21 +36,9 @@ def prettify_query(query: str) -> str:
 
 
 def parse_price(price_str: str) -> PriceModel:
-    price_str = re.sub(re.compile(r"[^\d.,]"), "", price_str).strip(".,")
+    price = Price.fromstring(price_str)
 
-    if not price_str:
-        amount = 0.0
-    elif "." not in price_str and "," not in price_str:
-        amount = float(price_str)
-    elif "." in price_str and "," in price_str:
-        price_split = price_str.replace(",", ".").split(".")
-        amount = float(f"{''.join(price_split[0:-1])}.{price_split[-1]}")
-    elif price_str.replace(",", ".").count(".") == 1:
-        amount = float(price_str.replace(",", "."))
-    else:
-        amount = float("".join(c for c in price_str if c.isdigit()))
-
-    return PriceModel(amount=amount, currency="€")
+    return PriceModel(amount=float(price.amount or 0), currency=price.currency or "")
 
 
 def remove_html_tags(text: str) -> str:
