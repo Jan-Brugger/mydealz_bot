@@ -1,18 +1,53 @@
+from __future__ import annotations
+
 import asyncio
 import logging
+import os
 from asyncio import create_task
+from datetime import datetime, timedelta
+from threading import Event, Thread
+from typing import TYPE_CHECKING
 
+from src import config
 from src.db.notification_client import NotificationClient
-from src.models import DealModel, NotificationModel
 from src.rss.feeds import AbstractFeed
-from src.telegram.bot import TelegramBot
+
+if TYPE_CHECKING:
+    from src.models import DealModel, NotificationModel
+    from src.telegram.bot import TelegramBot
 
 logger = logging.getLogger(__name__)
 
 
-class FeedParser:
-    @classmethod
-    async def run(cls) -> None:
+class FeedParser(Thread):
+    def __init__(self, bot: TelegramBot):
+        super().__init__()
+        self.bot = bot
+        self.exit_event = Event()
+
+    def run(self) -> None:
+        try:
+            while not self.exit_event.is_set():
+                try:
+                    asyncio.run(FeedParser(self.bot).parse_feeds())
+                except Exception:
+                    logger.exception("Error while parsing / sending deals")
+
+                logger.info(
+                    "Next feedparser-run: %s",
+                    datetime.now(tz=config.TIMEZONE) + timedelta(seconds=config.PARSE_INTERVAL),
+                )
+                self.exit_event.wait(config.PARSE_INTERVAL)
+
+        except (KeyboardInterrupt, SystemExit):
+            pass
+
+        os._exit(0 if self.exit_event.is_set() else 1)  # Kill main thread (telegram-bot)
+
+    def exit(self) -> None:
+        self.exit_event.set()
+
+    async def parse_feeds(self) -> None:
         feeds: list[type[AbstractFeed]] = AbstractFeed.__subclasses__()
 
         deals_list = await asyncio.gather(
@@ -39,8 +74,8 @@ class FeedParser:
                     if user.id in sent_to_users or not feeds[feed_number].consider_deals(notification, user):
                         continue
 
-                    if cls.notification_matches_deal(notification, deal):
-                        await TelegramBot.send_deal(deal, notification, user)
+                    if self.notification_matches_deal(notification, deal):
+                        await self.bot.send_deal(deal, notification, user)
                         sent_to_users.append(notification.user_id)
 
     @classmethod

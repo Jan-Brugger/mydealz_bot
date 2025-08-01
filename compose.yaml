@@ -1,0 +1,10 @@
+services:
+  mydealz_bot:
+    container_name: mydealz_bot
+    build:
+      context: .
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./files:/usr/src/app/files
