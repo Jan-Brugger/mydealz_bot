@@ -15,6 +15,7 @@ from src import config
 from src.db.db_client import DbClient
 from src.db.user_client import UserClient
 from src.models import DealModel, NotificationModel, UserModel
+from src.rss.feedparser import FeedParser
 from src.telegram.keyboards import Keyboards
 from src.telegram.messages import Messages
 from src.telegram.routers.admin_router import admin_router
@@ -36,14 +37,17 @@ class TelegramBot:
         msg = "Environment-variable BOT_TOKEN is missing!"
         raise NotImplementedError(msg)
 
-    @classmethod
-    async def run_bot(cls) -> None:
+    async def run_bot(self) -> None:
         dp = Dispatcher()
 
         if config.OWN_ID:
             dp.include_router(admin_router)
 
         dp.include_routers(base_router, notification_router, settings_router, error_router)
+
+        feedparser = FeedParser(self)
+        dp.startup.register(feedparser.start)
+        dp.shutdown.register(feedparser.exit)
 
         await dp.start_polling(Bot(token=config.BOT_TOKEN, default=properties))
 
