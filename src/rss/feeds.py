@@ -9,6 +9,7 @@ from pathlib import Path
 
 import requests
 from feedparser import FeedParserDict, parse
+from requests import Response
 from urllib3.exceptions import HTTPError
 
 from src import config
@@ -90,9 +91,12 @@ class AbstractFeed(ABC):
     @classmethod
     async def get_new_deals(cls) -> list[DealModel]:
         try:
-            response = await asyncio.to_thread(
+            response: Response = await asyncio.to_thread(
                 requests.get, url=cls._feed, headers={"User-Agent": "Telegram-Bot"}, timeout=30
             )
+
+            if response.status_code < 200 or response.status_code >= 300:  # noqa: PLR2004
+                logger.error("Failed to fetch %s. Response (%s): %s", cls._feed, response.status_code, response.content)
 
             return cls.parse_feed(response.content)
 
@@ -141,7 +145,7 @@ class PepperFeed:
 
 class MyDealzAllFeed(PepperFeed, AbstractFeed):
     _last_update = None
-    _feed = "https://www.mydealz.de/rss/alle"
+    _feed = "https://www.mydealz.de/rss/alles"
 
     @classmethod
     def consider_deals(cls, notification: NotificationModel, user: UserModel) -> bool:
