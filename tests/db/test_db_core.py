@@ -3,9 +3,10 @@ from sqlalchemy import inspect
 from sqlmodel import Session, select
 
 from src.db.db_client import DbClient
+from src.db.db_utilities import update_user_id
 from src.db.notification_client import NotificationClient
 from src.db.user_client import UserClient
-from src.exceptions import NotificationNotFoundError
+from src.exceptions import NotificationNotFoundError, UserNotFoundError
 from src.models import NotificationModel, UserModel
 
 
@@ -83,10 +84,18 @@ class TestDbCore:
         cls,
         user1: UserModel,
     ) -> None:
-        updated_user = DbClient.update_user_id(user1, 30)
+        updated_user = update_user_id(user1, 30)
         fetched_user = UserClient.fetch(30)
         notifications = NotificationClient.fetch_by_user_id(30)
 
         assert updated_user == fetched_user
         assert len(notifications) > 0
         assert isinstance(notifications[0], NotificationModel)
+
+    @classmethod
+    def test_change_user_to_existing_id(cls, user1: UserModel, user3: UserModel) -> None:
+        updated_user = update_user_id(user1, user3.id)
+
+        assert updated_user == user3
+        with pytest.raises(UserNotFoundError):
+            assert UserClient.fetch(user1.id)

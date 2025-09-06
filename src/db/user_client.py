@@ -25,6 +25,7 @@ class UserClient(DbClient):
         with Session(cls._engine) as session:
             user = cls._fetch(session, user_id)
             user.active = False
+
             return cls._update(session, user)
 
     @classmethod
@@ -32,6 +33,7 @@ class UserClient(DbClient):
         with Session(cls._engine) as session:
             user = cls._fetch(session, user_id)
             user.active = True
+
             return cls._update(session, user)
 
     @classmethod
@@ -71,5 +73,12 @@ class UserClient(DbClient):
         with Session(cls._engine) as session:
             user = cls._fetch(session, user_id)
             user.send_images = not user.send_images
+
+            return cls._update(session, user)
+
+    @classmethod
+    def update_user_id(cls, user: UserModel, new_id: int) -> UserModel:
+        with Session(cls._engine) as session:
+            user.id = new_id
 
             return cls._update(session, user)

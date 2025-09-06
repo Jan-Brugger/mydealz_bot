@@ -13,7 +13,7 @@ from aiogram.exceptions import (
 from aiogram.filters import Command
 
 from src import config
-from src.db.db_client import DbClient
+from src.db.db_utilities import update_user_id
 from src.db.user_client import UserClient
 from src.telegram.callbacks import BroadcastCB
 from src.telegram.enums import BotCommand
@@ -61,8 +61,11 @@ async def broadcast_send(
 
     sent_to = 0
     for user_id in user_ids:
-        if await send_copy(bot, user_id, message_id):
-            sent_to += 1
+        try:
+            if await send_copy(bot, user_id, message_id):
+                sent_to += 1
+        except TelegramAPIError:  # noqa: PERF203
+            logger.exception("Sending broadcast message failed")
 
     await overwrite_or_answer(
         telegram_object,
@@ -87,7 +90,7 @@ async def send_copy(bot: Bot, user_id: int, message_id: int) -> bool:
         UserClient.disable(user_id)
     except TelegramMigrateToChat as e:
         logger.info("Migrate user-id %s to %s", user_id, e.migrate_to_chat_id)
-        DbClient.update_user_id(UserClient.fetch(user_id), e.migrate_to_chat_id)
+        update_user_id(UserClient.fetch(user_id), e.migrate_to_chat_id)
     except TelegramAPIError:
         logger.exception("Failed to send broadcast-message")
     else:

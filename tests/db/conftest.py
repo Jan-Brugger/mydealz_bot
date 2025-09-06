@@ -31,8 +31,15 @@ def user2() -> UserModel:
 
 
 @pytest.fixture
-def users(user0: UserModel, user1: UserModel) -> tuple[UserModel, UserModel]:
-    return user0, user1
+def user3() -> UserModel:
+    return UserModel(id=70, username="max444", active=False)
+
+
+@pytest.fixture
+def users(
+    user0: UserModel, user1: UserModel, user2: UserModel, user3: UserModel
+) -> tuple[UserModel, UserModel, UserModel, UserModel]:
+    return user0, user1, user2, user3
 
 
 @pytest.fixture

@@ -12,7 +12,7 @@ from aiogram.exceptions import (
 )
 
 from src import config
-from src.db.db_client import DbClient
+from src.db.db_utilities import update_user_id
 from src.db.user_client import UserClient
 from src.models import DealModel, NotificationModel, UserModel
 from src.rss.feedparser import FeedParser
@@ -75,7 +75,7 @@ class TelegramBot:
                 UserClient.disable(user.id)
             except TelegramMigrateToChat as e:
                 logger.info("Migrate user-id %s to %s", user.id, e.migrate_to_chat_id)
-                DbClient.update_user_id(user, e.migrate_to_chat_id)
+                update_user_id(user, e.migrate_to_chat_id)
             except TelegramBadRequest as e:
                 if "chat not found" in e.message.lower():
                     logger.info("Chat %s not found. Disable user.", user.id)

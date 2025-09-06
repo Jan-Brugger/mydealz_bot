@@ -89,3 +89,12 @@ class NotificationClient(DbClient):
             notification = cls._fetch(session, notification_id)
             notification.search_description = not notification.search_description
             return cls._update(session, notification)
+
+    @classmethod
+    def update_user_id(cls, old_user_id: int, new_user_id: int) -> None:
+        notifications = cls.fetch_by_user_id(old_user_id)
+
+        with Session(cls._engine) as session:
+            for notification in notifications:
+                notification.user_id = new_user_id
+                cls._update(session, notification)
